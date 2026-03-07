@@ -298,13 +298,14 @@ async def sync_balances():
         # Build and sign transaction
         # Get gas price (fallback for networks without EIP-1559)
         try:
-            max_fee = w3.eth.max_fee_per_gas
+            base_fee = w3.eth.get_block('latest')['baseFeePerGas']
             max_priority = w3.eth.max_priority_fee_per_gas
-        except AttributeError:
+            max_fee = base_fee * 2 + max_priority  # Double the base fee to ensure inclusion
+        except (AttributeError, KeyError):
             # Fallback for non-EIP-1559 networks
             gas_price = w3.eth.gas_price
-            max_fee = gas_price
-            max_priority = gas_price // 10
+            max_fee = int(gas_price * 1.5)  # Add 50% buffer
+            max_priority = int(gas_price * 0.1)
         
         tx = vault_contract.functions.syncBalances(balances).build_transaction({
             'from': keeper_account.address,
