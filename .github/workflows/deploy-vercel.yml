@@ -23,30 +23,29 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
+      - name: Link Vercel Project
+        working-directory: ./packages/frontend
+        run: |
+          mkdir -p .vercel
+          echo '{"orgId":"${{ vars.VERCEL_ORG_ID }}","projectId":"${{ vars.VERCEL_PROJECT_ID }}"}' > .vercel/project.json
+
       - name: Pull Vercel Environment Information
         working-directory: ./packages/frontend
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL }}
-          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID || 'team_xaa4wm9qbJIzONgCoGLc20eD' }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID || 'prj_M1KNmwlNbvWxO3qjYQZCWl4DtHBX' }}
         run: |
-          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build Project Artifacts
         working-directory: ./packages/frontend
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL }}
-          NEXT_PUBLIC_VAULT_ADDRESS: ${{ vars.VAULT_ADDRESS || '0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E' }}
-          NEXT_PUBLIC_USDC_ADDRESS: ${{ vars.USDC_ADDRESS || '0xA526233CdaAd2Ed586908E5D9B3446e0A6F262E5' }}
+          NEXT_PUBLIC_VAULT_ADDRESS: ${{ vars.USDC_ADDRESS }}
+          NEXT_PUBLIC_USDC_ADDRESS: ${{ vars.USDC_ADDRESS }}
           NEXT_PUBLIC_CHAIN_ID: 421614
           NEXT_PUBLIC_RPC_URL: https://arbitrum-sepolia.drpc.org
-          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ vars.WALLETCONNECT_PROJECT_ID || '7efde86d6f5ee30bddcb4c0dc4173daf' }}
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ vars.WALLETCONNECT_PROJECT_ID }}
         run: |
-          vercel build --prod --token=$VERCEL_TOKEN
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy Project Artifacts to Vercel
         working-directory: ./packages/frontend
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL }}
         run: |
-          vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
