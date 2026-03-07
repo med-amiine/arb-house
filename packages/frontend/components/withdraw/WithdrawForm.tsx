@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
 import { ArrowRight, Loader2, Info } from 'lucide-react'
@@ -12,7 +12,7 @@ const USDC_DECIMALS = 6
 export function WithdrawForm() {
   const { address, isConnected } = useAccount()
   const [amount, setAmount] = useState('')
-  
+
   // Read BCV balance
   const { data: bcvBalance, refetch: refetchBalance } = useReadContract({
     address: VAULT_ADDRESS,
@@ -21,7 +21,7 @@ export function WithdrawForm() {
     args: address ? [address] : undefined,
     query: { enabled: !!address },
   })
-  
+
   // Read preview redeem
   const { data: previewAssets } = useReadContract({
     address: VAULT_ADDRESS,
@@ -30,23 +30,27 @@ export function WithdrawForm() {
     args: amount ? [parseUnits(amount, USDC_DECIMALS)] : undefined,
     query: { enabled: !!amount },
   })
-  
+
   // Request withdraw
-  const { 
+  const {
     writeContract: requestWithdraw,
     isPending: isRequesting,
-    data: withdrawHash 
+    data: withdrawHash
   } = useWriteContract()
-  
+
   // Wait for transaction
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ 
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: withdrawHash,
-    onSuccess: () => {
+  })
+  
+  // Handle successful withdrawal
+  useEffect(() => {
+    if (isConfirmed) {
       setAmount('')
       refetchBalance()
     }
-  })
-  
+  }, [isConfirmed, refetchBalance])
+
   const handleRequestWithdraw = () => {
     if (!amount) return
     requestWithdraw({
@@ -56,13 +60,13 @@ export function WithdrawForm() {
       args: [parseUnits(amount, USDC_DECIMALS)],
     })
   }
-  
+
   const setMaxAmount = () => {
     if (bcvBalance) {
       setAmount(formatUnits(bcvBalance as bigint, USDC_DECIMALS))
     }
   }
-  
+
   if (!isConnected) {
     return (
       <div className="text-center py-8">
@@ -70,11 +74,11 @@ export function WithdrawForm() {
       </div>
     )
   }
-  
-  const balanceFormatted = bcvBalance 
+
+  const balanceFormatted = bcvBalance
     ? formatNumber(Number(formatUnits(bcvBalance as bigint, USDC_DECIMALS)))
     : '0'
-  
+
   return (
     <div className="space-y-6">
       {/* Amount Input */}
@@ -103,7 +107,7 @@ export function WithdrawForm() {
           <span>Balance: {balanceFormatted} BCV</span>
         </div>
       </div>
-      
+
       {/* Preview */}
       {previewAssets && amount && (
         <div className="bg-surface-hover rounded-lg p-4 space-y-2">
@@ -119,7 +123,7 @@ export function WithdrawForm() {
           </div>
         </div>
       )}
-      
+
       {/* Info Box */}
       <div className="flex gap-3 bg-surface-hover rounded-lg p-4">
         <Info size={18} className="text-text-muted flex-shrink-0 mt-0.5" />
@@ -128,7 +132,7 @@ export function WithdrawForm() {
           <p>Your shares will be burned immediately. USDC will be sent to your wallet once the keeper processes your request (typically 2-5 minutes).</p>
         </div>
       </div>
-      
+
       {/* Action Button */}
       <button
         onClick={handleRequestWithdraw}
@@ -147,7 +151,7 @@ export function WithdrawForm() {
           </>
         )}
       </button>
-      
+
       {/* Success Message */}
       {withdrawHash && !isConfirming && (
         <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
