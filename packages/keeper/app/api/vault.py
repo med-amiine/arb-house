@@ -1,10 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from web3 import Web3
+import structlog
+
 from app.config import settings
 
 router = APIRouter()
+logger = structlog.get_logger()
 
 # Mock data storage (in-memory for MVP)
 _mock_vault_state = {
@@ -12,8 +16,9 @@ _mock_vault_state = {
     "apy": settings.mock_apy,
     "share_price": settings.mock_share_price,
     "depositors": settings.mock_depositors,
-    "total_shares": 1152073.0,  # TVL / share_price
+    "total_shares": 1152073.0,
     "last_update": datetime.utcnow().isoformat(),
+    "last_sync": int(datetime.utcnow().timestamp()),
 }
 
 _mock_agents = [
@@ -73,42 +78,54 @@ _mock_transactions = [
         "status": "completed",
         "hash": "0xdef...",
     },
-    {
-        "id": "tx_003",
-        "type": "deposit",
-        "amount": 25000,
-        "asset": "USDC",
-        "user": "0x123d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-        "timestamp": (datetime.utcnow()).isoformat(),
-        "status": "completed",
-        "hash": "0xghi...",
-    },
-    {
-        "id": "tx_004",
-        "type": "yield",
-        "amount": 125.50,
-        "asset": "USDC",
-        "user": "vault",
-        "timestamp": (datetime.utcnow()).isoformat(),
-        "status": "completed",
-        "hash": "0xjkl...",
-    },
 ]
 
 _mock_yield_history = [
-    {"month": "Jan", "apy": 4.20},
-    {"month": "Feb", "apy": 5.10},
-    {"month": "Mar", "apy": 4.80},
-    {"month": "Apr", "apy": 6.20},
-    {"month": "May", "apy": 5.90},
-    {"month": "Jun", "apy": 7.10},
-    {"month": "Jul", "apy": 6.80},
-    {"month": "Aug", "apy": 8.20},
-    {"month": "Sep", "apy": 7.90},
-    {"month": "Oct", "apy": 8.50},
-    {"month": "Nov", "apy": 8.10},
+    {"month": "Jan", "apy": 4.2},
+    {"month": "Feb", "apy": 5.1},
+    {"month": "Mar", "apy": 4.8},
+    {"month": "Apr", "apy": 6.2},
+    {"month": "May", "apy": 5.9},
+    {"month": "Jun", "apy": 7.1},
+    {"month": "Jul", "apy": 6.8},
+    {"month": "Aug", "apy": 8.2},
+    {"month": "Sep", "apy": 7.9},
+    {"month": "Oct", "apy": 8.5},
+    {"month": "Nov", "apy": 8.1},
     {"month": "Dec", "apy": 8.42},
 ]
+
+# Web3 setup for actual blockchain calls (when not in mock mode)
+w3 = None
+vault_contract = None
+keeper_account = None
+
+if not settings.mock_mode:
+    try:
+        w3 = Web3(Web3.HTTPProvider(settings.arb_rpc_url))
+        vault_contract = w3.eth.contract(
+            address=Web3.to_checksum_address(settings.vault_address),
+            abi=[
+                {
+                    "inputs": [{"name": "balances", "type": "uint256[3]"}],
+                    "name": "syncBalances",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "lastSync",
+                    "outputs": [{"name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+            ]
+        )
+        keeper_account = w3.eth.account.from_key(settings.keeper_private_key)
+        logger.info("blockchain_connection_established")
+    except Exception as e:
+        logger.error("blockchain_connection_failed", error=str(e))
 
 class VaultState(BaseModel):
     tvl: float
@@ -119,6 +136,7 @@ class VaultState(BaseModel):
     depositors: int
     total_shares: float
     last_update: str
+    last_sync: int
 
 class AgentInfo(BaseModel):
     id: int
@@ -145,9 +163,22 @@ class YieldData(BaseModel):
     month: str
     apy: float
 
+class SyncResponse(BaseModel):
+    success: bool
+    tx_hash: Optional[str] = None
+    error: Optional[str] = None
+
 @router.get("/state", response_model=VaultState)
 async def get_vault_state():
     """Get current vault state"""
+    # Check actual lastSync from contract if available
+    last_sync = _mock_vault_state["last_sync"]
+    if vault_contract and w3:
+        try:
+            last_sync = vault_contract.functions.lastSync().call()
+        except Exception as e:
+            logger.warning("failed_to_fetch_lastSync", error=str(e))
+    
     return VaultState(
         tvl=_mock_vault_state["tvl"],
         tvl_change_24h=12.5,
@@ -157,6 +188,7 @@ async def get_vault_state():
         depositors=_mock_vault_state["depositors"],
         total_shares=_mock_vault_state["total_shares"],
         last_update=_mock_vault_state["last_update"],
+        last_sync=last_sync,
     )
 
 @router.get("/agents", response_model=List[AgentInfo])
@@ -177,7 +209,6 @@ async def get_yield_history():
 @router.get("/user/{user_address}/balance")
 async def get_user_balance(user_address: str):
     """Get user balance and positions"""
-    # Mock user data
     return {
         "address": user_address,
         "usdc_balance": 5000.0,
@@ -243,3 +274,49 @@ async def mock_withdraw(amount: float, user: str):
         "new_tvl": _mock_vault_state["tvl"],
         "shares_burned": amount / _mock_vault_state["share_price"],
     }
+
+@router.post("/sync", response_model=SyncResponse)
+async def sync_balances():
+    """Manually trigger balance sync on the vault contract"""
+    if settings.mock_mode:
+        # In mock mode, just update the timestamp
+        _mock_vault_state["last_sync"] = int(datetime.utcnow().timestamp())
+        _mock_vault_state["last_update"] = datetime.utcnow().isoformat()
+        logger.info("mock_sync_completed")
+        return SyncResponse(success=True, tx_hash="mock_tx_hash")
+    
+    if not vault_contract or not w3 or not keeper_account:
+        logger.error("blockchain_not_configured")
+        return SyncResponse(success=False, error="Blockchain not configured")
+    
+    try:
+        # Prepare balances array (mock values for now)
+        balances = [500000, 437500, 312500]  # 6 decimal USDC amounts
+        
+        logger.info("sending_sync_balances", balances=balances)
+        
+        # Build and sign transaction
+        tx = vault_contract.functions.syncBalances(balances).build_transaction({
+            'from': keeper_account.address,
+            'nonce': w3.eth.get_transaction_count(keeper_account.address),
+            'gas': 200000,
+            'maxFeePerGas': w3.eth.max_fee_per_gas,
+            'maxPriorityFeePerGas': w3.eth.max_priority_fee_per_gas
+        })
+        
+        signed = w3.eth.account.sign_transaction(tx, settings.keeper_private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+        
+        # Wait for receipt
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+        
+        if receipt.status == 1:
+            logger.info("sync_balances_success", tx_hash=tx_hash.hex())
+            return SyncResponse(success=True, tx_hash=tx_hash.hex())
+        else:
+            logger.error("sync_balances_failed", tx_hash=tx_hash.hex())
+            return SyncResponse(success=False, error="Transaction failed")
+            
+    except Exception as e:
+        logger.error("sync_balances_error", error=str(e))
+        return SyncResponse(success=False, error=str(e))
