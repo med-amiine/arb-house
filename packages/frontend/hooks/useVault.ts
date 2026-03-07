@@ -88,7 +88,7 @@ export function useVaultData() {
   let sharePrice = 1.0
   let sharePriceChange = 0
   
-  if (totalAssets && totalSupply && totalSupply > 0n) {
+  if (totalAssets && totalSupply && totalSupply > BigInt(0)) {
     const assetsNum = Number(formatUnits(totalAssets, USDC_DECIMALS))
     const supplyNum = Number(formatUnits(totalSupply, USDC_DECIMALS))
     sharePrice = assetsNum / supplyNum
