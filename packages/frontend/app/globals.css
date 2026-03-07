@@ -1,3 +1,5 @@
+@import '@rainbow-me/rainbowkit/styles.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -54,4 +56,33 @@
   .stat-value {
     @apply font-mono text-text-primary;
   }
+}
+
+/* RainbowKit Custom Theme */
+[data-rk] {
+  --rk-colors-modalBackground: #141517;
+  --rk-colors-modalText: #E8F0E8;
+  --rk-colors-accentColor: #059669;
+  --rk-colors-accentColorForeground: #ffffff;
+  --rk-colors-profileForeground: #1A1B1F;
+  --rk-colors-profileAction: #141517;
+  --rk-colors-profileActionHover: #1A1B1F;
+  --rk-colors-connectButtonBackground: #141517;
+  --rk-colors-connectButtonText: #E8F0E8;
+  --rk-colors-connectButtonBackgroundError: #DC2626;
+  --rk-colors-connectButtonTextError: #ffffff;
+  --rk-colors-downloadBottomCardBackground: #1A1B1F;
+  --rk-colors-downloadTopCardBackground: #141517;
+  --rk-colors-connectionIndicator: #059669;
+  --rk-colors-error: #DC2626;
+  --rk-colors-menuItemBackground: #1A1B1F;
+  --rk-colors-generalBorder: #2A2B2F;
+  --rk-colors-generalBorderDim: #1A1B1F;
+  --rk-colors-modalBorder: transparent;
+  --rk-colors-modalTextSecondary: #6B7280;
+  --rk-colors-modalTextDim: #4B5563;
+  --rk-colors-closeButton: #E8F0E8;
+  --rk-colors-closeButtonBackground: #1A1B1F;
+  --rk-shadows-connectButton: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --rk-shadows-dialog: 0 8px 32px rgba(0, 0, 0, 0.7);
 }
