@@ -3,7 +3,6 @@
 import { TrendingUp, Info } from 'lucide-react'
 
 export function YieldChart() {
-  // Mock data for the chart
   const dataPoints = [4.2, 5.1, 4.8, 6.2, 5.9, 7.1, 6.8, 8.2, 7.9, 8.5, 8.1, 8.42]
   const maxValue = Math.max(...dataPoints)
   const minValue = Math.min(...dataPoints)
@@ -24,7 +23,6 @@ export function YieldChart() {
         </div>
       </div>
 
-      {/* Chart */}
       <div className="h-64 relative">
         <div className="absolute inset-0 flex items-end gap-2">
           {dataPoints.map((value, index) => {
@@ -41,8 +39,7 @@ export function YieldChart() {
                   }`}
                   style={{ height: `${height}%` }}
                 />
-                <div className="opacity-0 group-hover:opacity-100 text-center text-xs text-text-muted mt-2 transition-opacity"
-003e
+                <div className="opacity-0 group-hover:opacity-100 text-center text-xs text-text-muted mt-2 transition-opacity">
                   {value.toFixed(2)}%
                 </div>
               </div>
@@ -50,7 +47,6 @@ export function YieldChart() {
           })}
         </div>
 
-        {/* Y-axis labels */}
         <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-xs text-text-muted">
           <span>{maxValue.toFixed(1)}%</span>
           <span>{((maxValue + minValue) / 2).toFixed(1)}%</span>
@@ -58,7 +54,6 @@ export function YieldChart() {
         </div>
       </div>
 
-      {/* X-axis labels */}
       <div className="flex justify-between text-xs text-text-muted mt-4">
         <span>Jan</span>
         <span>Mar</span>

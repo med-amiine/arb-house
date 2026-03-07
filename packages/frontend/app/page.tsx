@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 relative">
@@ -37,24 +36,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Dashboard */}
       <section className="py-12 border-t border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <VaultStats />
         </div>
       </section>
 
-      {/* Main Content Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Chart */}
             <div className="lg:col-span-2 space-y-8">
               <YieldChart />
               <AgentList />
             </div>
 
-            {/* Right Column - Activity */}
             <div className="space-y-8">
               <RecentActivity />
             </div>

@@ -20,7 +20,6 @@ export function Navigation() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-void/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center">
               <Vault className="w-5 h-5 text-white" />
@@ -30,7 +29,6 @@ export function Navigation() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon
@@ -52,12 +50,10 @@ export function Navigation() {
             })}
           </nav>
 
-          {/* Connect Button */}
           <div className="hidden md:block">
             <ConnectButton />
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-lg hover:bg-surface"
@@ -65,12 +61,11 @@ export function Navigation() {
             {mobileMenuOpen ? (
               <X className="w-6 h-6" />
             ) : (
-              <Menu className="w-6 h-6" /
+              <Menu className="w-6 h-6" />
             )}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-border/40 py-4 space-y-2">
             {navItems.map((item) => {
