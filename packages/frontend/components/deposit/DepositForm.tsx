@@ -9,18 +9,35 @@ import { formatNumber } from '@/lib/utils'
 
 const USDC_DECIMALS = 6
 
+// Validate contract addresses
+const validateAddress = (addr: string, name: string): `0x${string}` => {
+  if (!addr || addr === 'undefined' || addr === 'null') {
+    throw new Error(`${name} is not defined`)
+  }
+  if (!addr.startsWith('0x') || addr.length !== 42) {
+    throw new Error(`${name} is invalid: ${addr}`)
+  }
+  return addr as `0x${string}`
+}
+
 export function DepositForm() {
   const { address, isConnected } = useAccount()
   const [amount, setAmount] = useState('')
+  const [validationError, setValidationError] = useState<string | null>(null)
   
-  // Debug logging
+  // Validate addresses on mount
   useEffect(() => {
-    console.log('Contract Addresses:', {
-      VAULT_ADDRESS,
-      USDC_ADDRESS,
-      userAddress: address,
-    })
-  }, [address])
+    try {
+      validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
+      validateAddress(USDC_ADDRESS, 'USDC_ADDRESS')
+      console.log('Contract addresses validated:', {
+        VAULT_ADDRESS,
+        USDC_ADDRESS,
+      })
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Address validation failed')
+    }
+  }, [])
   
   // Read USDC balance
   const { data: usdcBalance, error: balanceError } = useReadContract({
@@ -82,32 +99,49 @@ export function DepositForm() {
   
   const handleApprove = () => {
     if (!amount) return
-    console.log('Approving USDC:', {
-      USDC_ADDRESS,
-      VAULT_ADDRESS,
-      amount: parseUnits(amount, USDC_DECIMALS).toString(),
-    })
-    approve({
-      address: USDC_ADDRESS,
-      abi: USDC_ABI,
-      functionName: 'approve',
-      args: [VAULT_ADDRESS, parseUnits(amount, USDC_DECIMALS)],
-    })
+    
+    try {
+      const vaultAddr = validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
+      const usdcAddr = validateAddress(USDC_ADDRESS, 'USDC_ADDRESS')
+      
+      console.log('Approving USDC:', {
+        usdcAddr,
+        vaultAddr,
+        amount: parseUnits(amount, USDC_DECIMALS).toString(),
+      })
+      
+      approve({
+        address: usdcAddr,
+        abi: USDC_ABI,
+        functionName: 'approve',
+        args: [vaultAddr, parseUnits(amount, USDC_DECIMALS)],
+      })
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Approval failed')
+    }
   }
   
   const handleDeposit = () => {
     if (!amount || !address) return
-    console.log('Depositing:', {
-      VAULT_ADDRESS,
-      amount: parseUnits(amount, USDC_DECIMALS).toString(),
-      address,
-    })
-    deposit({
-      address: VAULT_ADDRESS,
-      abi: VAULT_ABI,
-      functionName: 'deposit',
-      args: [parseUnits(amount, USDC_DECIMALS), address],
-    })
+    
+    try {
+      const vaultAddr = validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
+      
+      console.log('Depositing to vault:', {
+        vaultAddr,
+        amount: parseUnits(amount, USDC_DECIMALS).toString(),
+        receiver: address,
+      })
+      
+      deposit({
+        address: vaultAddr,
+        abi: VAULT_ABI,
+        functionName: 'deposit',
+        args: [parseUnits(amount, USDC_DECIMALS), address],
+      })
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Deposit failed')
+    }
   }
   
   const setMaxAmount = () => {
@@ -130,10 +164,18 @@ export function DepositForm() {
   
   return (
     <div className="space-y-6">
-      {/* Debug Info - Remove in production */}
+      {/* Validation Error */}
+      {validationError && (
+        <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
+          <p className="text-danger font-medium">Configuration Error:</p>
+          <p className="text-text-secondary">{validationError}</p>
+        </div>
+      )}
+      
+      {/* Contract Errors */}
       {(balanceError || allowanceError || previewError || approveError || depositError) && (
         <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
-          <p className="text-danger font-medium">Error:</p>
+          <p className="text-danger font-medium">Transaction Error:</p>
           {balanceError && <p className="text-text-secondary">Balance: {balanceError.message}</p>}
           {allowanceError && <p className="text-text-secondary">Allowance: {allowanceError.message}</p>}
           {previewError && <p className="text-text-secondary">Preview: {previewError.message}</p>}
@@ -190,7 +232,7 @@ export function DepositForm() {
         {needsApproval ? (
           <button
             onClick={handleApprove}
-            disabled={isApproving || isConfirmingApprove || !amount}
+            disabled={isApproving || isConfirmingApprove || !amount || !!validationError}
             className="btn-primary w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
           >
             {(isApproving || isConfirmingApprove) ? (
@@ -205,7 +247,7 @@ export function DepositForm() {
         ) : (
           <button
             onClick={handleDeposit}
-            disabled={isDepositing || isConfirmingDeposit || !amount || parseFloat(amount) <= 0}
+            disabled={isDepositing || isConfirmingDeposit || !amount || parseFloat(amount) <= 0 || !!validationError}
             className="btn-primary w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
           >
             {(isDepositing || isConfirmingDeposit) ? (
