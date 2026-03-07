@@ -1,0 +1,31 @@
+{
+  "network": "arbitrum-sepolia",
+  "chainId": 421614,
+  "timestamp": "2025-03-07T13:45:00Z",
+  "deployer": "0xD8CDe62aCB881329EBb4694f37314b7bBA77EbDe",
+  "contracts": {
+    "usdc": "0xd51391fa22b32E87c1B7Ebe5a8Db412dc7c15A92",
+    "vault": "0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E",
+    "keeper": "0xD8CDe62aCB881329EBb4694f37314b7bBA77EbDe",
+    "agents": [
+      {
+        "index": 0,
+        "address": "0x3E17F1f04870Df48Aca3481CCD58ADb61CD59BDc",
+        "strategy": "Aave USDC Lending",
+        "creditLimit": "100000000000"
+      },
+      {
+        "index": 1,
+        "address": "0x959353a97A01A03614E7475D423DFCffC4619a06",
+        "strategy": "Pendle PT Holding",
+        "creditLimit": "100000000000"
+      },
+      {
+        "index": 2,
+        "address": "0xbA0385cbB5DBEd0C450c81167808A99633d8578D",
+        "strategy": "Morpho Lending",
+        "creditLimit": "100000000000"
+      }
+    ]
+  }
+}
