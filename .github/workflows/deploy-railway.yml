@@ -24,8 +24,6 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAYS }}
         run: |
           cd packages/keeper
-          railway up
+          railway up --token=${{ secrets.RAILWAYS_TOKEN }}
