@@ -110,7 +110,7 @@ export function DepositForm() {
           address: vaultAddr,
           abi: VAULT_FULL_ABI,
           functionName: 'syncBalances',
-          args: [[500000000000, 437500000000, 312500000000]], // Agent balances in 6 decimals
+          args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]], // Agent balances in 6 decimals
         })
       } catch (err) {
         console.error('Failed to trigger sync:', err)
@@ -182,7 +182,7 @@ export function DepositForm() {
         address: vaultAddr,
         abi: VAULT_FULL_ABI,
         functionName: 'syncBalances',
-        args: [[500000000000, 437500000000, 312500000000]],
+        args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]],
       })
     } catch (err) {
       console.error('Manual sync failed:', err)

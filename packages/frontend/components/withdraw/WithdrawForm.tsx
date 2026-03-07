@@ -64,7 +64,7 @@ export function WithdrawForm() {
         address: VAULT_ADDRESS,
         abi: VAULT_FULL_ABI,
         functionName: 'syncBalances',
-        args: [[500000000000, 437500000000, 312500000000]],
+        args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]],
       })
     }
   }, [isConfirmed, withdrawHash, syncBalances])
@@ -97,7 +97,7 @@ export function WithdrawForm() {
       address: VAULT_ADDRESS,
       abi: VAULT_FULL_ABI,
       functionName: 'syncBalances',
-      args: [[500000000000, 437500000000, 312500000000]],
+      args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]],
     })
   }
 
