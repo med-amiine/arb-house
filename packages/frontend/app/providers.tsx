@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const config = getDefaultConfig({
   appName: 'Bond Credit Vault',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7efde86d6f5ee30bddcb4c0dc4173daf',
   chains: [arbitrum, arbitrumSepolia],
   ssr: true,
 })
