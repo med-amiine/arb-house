@@ -37,7 +37,7 @@ jobs:
       - name: Build Project Artifacts
         working-directory: ./packages/frontend
         env:
-          NEXT_PUBLIC_VAULT_ADDRESS: ${{ vars.USDC_ADDRESS }}
+          NEXT_PUBLIC_VAULT_ADDRESS: ${{ vars.VAULT_ADDRESS }}
           NEXT_PUBLIC_USDC_ADDRESS: ${{ vars.USDC_ADDRESS }}
           NEXT_PUBLIC_CHAIN_ID: 421614
           NEXT_PUBLIC_RPC_URL: https://arbitrum-sepolia.drpc.org
