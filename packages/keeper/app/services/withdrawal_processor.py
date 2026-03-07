@@ -144,8 +144,8 @@ class WithdrawalProcessor:
                 'from': self.keeper_account.address,
                 'nonce': self.w3.eth.get_transaction_count(self.keeper_account.address),
                 'gas': 200000,
-                'maxFeePerGas': self.w3.eth.max_fee_per_gas,
-                'maxPriorityFeePerGas': self.w3.eth.max_priority_fee_per_gas
+                'maxFeePerGas': self.w3.eth.max_fee_per_gas if hasattr(self.w3.eth, 'max_fee_per_gas') else self.w3.eth.gas_price,
+                'maxPriorityFeePerGas': self.w3.eth.max_priority_fee_per_gas if hasattr(self.w3.eth, 'max_priority_fee_per_gas') else self.w3.eth.gas_price // 10
             })
             
             signed = self.w3.eth.account.sign_transaction(tx, settings.keeper_private_key)

@@ -87,12 +87,21 @@ class BalanceSync:
         
         logger.info("syncing_balances", balances=balances)
         
+        try:
+            max_fee = self.w3.eth.max_fee_per_gas
+            max_priority = self.w3.eth.max_priority_fee_per_gas
+        except AttributeError:
+            # Fallback for non-EIP-1559 networks
+            gas_price = self.w3.eth.gas_price
+            max_fee = gas_price
+            max_priority = gas_price // 10
+        
         tx = self.vault.functions.syncBalances(balances).build_transaction({
             'from': self.keeper_account.address,
             'nonce': self.w3.eth.get_transaction_count(self.keeper_account.address),
             'gas': 150000,
-            'maxFeePerGas': self.w3.eth.max_fee_per_gas,
-            'maxPriorityFeePerGas': self.w3.eth.max_priority_fee_per_gas
+            'maxFeePerGas': max_fee,
+            'maxPriorityFeePerGas': max_priority
         })
         
         signed = self.w3.eth.account.sign_transaction(tx, settings.keeper_private_key)

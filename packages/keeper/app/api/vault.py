@@ -296,12 +296,22 @@ async def sync_balances():
         logger.info("sending_sync_balances", balances=balances)
         
         # Build and sign transaction
+        # Get gas price (fallback for networks without EIP-1559)
+        try:
+            max_fee = w3.eth.max_fee_per_gas
+            max_priority = w3.eth.max_priority_fee_per_gas
+        except AttributeError:
+            # Fallback for non-EIP-1559 networks
+            gas_price = w3.eth.gas_price
+            max_fee = gas_price
+            max_priority = gas_price // 10
+        
         tx = vault_contract.functions.syncBalances(balances).build_transaction({
             'from': keeper_account.address,
             'nonce': w3.eth.get_transaction_count(keeper_account.address),
             'gas': 200000,
-            'maxFeePerGas': w3.eth.max_fee_per_gas,
-            'maxPriorityFeePerGas': w3.eth.max_priority_fee_per_gas
+            'maxFeePerGas': max_fee,
+            'maxPriorityFeePerGas': max_priority
         })
         
         signed = w3.eth.account.sign_transaction(tx, settings.keeper_private_key)
