@@ -27,7 +27,7 @@ jobs:
         working-directory: ./packages/frontend
         run: |
           mkdir -p .vercel
-          echo '{"orgId":"${{ vars.VERCEL_ORG_ID }}","projectId":"${{ vars.VERCEL_PROJECT_ID }}"}' > .vercel/project.json
+          echo '{"orgId":"${{ secrets.VERCEL_ORG_ID }}","projectId":"${{ secrets.VERCEL_PROJECT_ID }}"}' > .vercel/project.json
 
       - name: Pull Vercel Environment Information
         working-directory: ./packages/frontend
@@ -37,11 +37,11 @@ jobs:
       - name: Build Project Artifacts
         working-directory: ./packages/frontend
         env:
-          NEXT_PUBLIC_VAULT_ADDRESS: ${{ vars.VAULT_ADDRESS }}
-          NEXT_PUBLIC_USDC_ADDRESS: ${{ vars.USDC_ADDRESS }}
+          NEXT_PUBLIC_VAULT_ADDRESS: ${{ secrets.VAULT_ADDRESS }}
+          NEXT_PUBLIC_USDC_ADDRESS: ${{ secrets.USDC_ADDRESS }}
           NEXT_PUBLIC_CHAIN_ID: 421614
           NEXT_PUBLIC_RPC_URL: https://arbitrum-sepolia.drpc.org
-          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ vars.WALLETCONNECT_PROJECT_ID }}
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
         run: |
           vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
