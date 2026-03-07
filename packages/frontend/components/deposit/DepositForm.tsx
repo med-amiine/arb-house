@@ -12,10 +12,18 @@ const USDC_DECIMALS = 6
 export function DepositForm() {
   const { address, isConnected } = useAccount()
   const [amount, setAmount] = useState('')
-  const [isApproved, setIsApproved] = useState(false)
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Contract Addresses:', {
+      VAULT_ADDRESS,
+      USDC_ADDRESS,
+      userAddress: address,
+    })
+  }, [address])
   
   // Read USDC balance
-  const { data: usdcBalance } = useReadContract({
+  const { data: usdcBalance, error: balanceError } = useReadContract({
     address: USDC_ADDRESS,
     abi: USDC_ABI,
     functionName: 'balanceOf',
@@ -24,35 +32,37 @@ export function DepositForm() {
   })
   
   // Read USDC allowance
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance, error: allowanceError } = useReadContract({
     address: USDC_ADDRESS,
     abi: USDC_ABI,
     functionName: 'allowance',
     args: address ? [address, VAULT_ADDRESS] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: !!address && !!VAULT_ADDRESS },
   })
   
   // Read preview deposit
-  const { data: previewShares } = useReadContract({
+  const { data: previewShares, error: previewError } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: 'previewDeposit',
     args: amount ? [parseUnits(amount, USDC_DECIMALS)] : undefined,
-    query: { enabled: !!amount },
+    query: { enabled: !!amount && !!VAULT_ADDRESS },
   })
   
   // Approve USDC
   const { 
     writeContract: approve,
     isPending: isApproving,
-    data: approveHash 
+    data: approveHash,
+    error: approveError 
   } = useWriteContract()
   
   // Deposit
   const { 
     writeContract: deposit,
     isPending: isDepositing,
-    data: depositHash 
+    data: depositHash,
+    error: depositError 
   } = useWriteContract()
   
   // Wait for transactions
@@ -72,6 +82,11 @@ export function DepositForm() {
   
   const handleApprove = () => {
     if (!amount) return
+    console.log('Approving USDC:', {
+      USDC_ADDRESS,
+      VAULT_ADDRESS,
+      amount: parseUnits(amount, USDC_DECIMALS).toString(),
+    })
     approve({
       address: USDC_ADDRESS,
       abi: USDC_ABI,
@@ -82,6 +97,11 @@ export function DepositForm() {
   
   const handleDeposit = () => {
     if (!amount || !address) return
+    console.log('Depositing:', {
+      VAULT_ADDRESS,
+      amount: parseUnits(amount, USDC_DECIMALS).toString(),
+      address,
+    })
     deposit({
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
@@ -110,6 +130,18 @@ export function DepositForm() {
   
   return (
     <div className="space-y-6">
+      {/* Debug Info - Remove in production */}
+      {(balanceError || allowanceError || previewError || approveError || depositError) && (
+        <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
+          <p className="text-danger font-medium">Error:</p>
+          {balanceError && <p className="text-text-secondary">Balance: {balanceError.message}</p>}
+          {allowanceError && <p className="text-text-secondary">Allowance: {allowanceError.message}</p>}
+          {previewError && <p className="text-text-secondary">Preview: {previewError.message}</p>}
+          {approveError && <p className="text-text-secondary">Approve: {approveError.message}</p>}
+          {depositError && <p className="text-text-secondary">Deposit: {depositError.message}</p>}
+        </div>
+      )}
+      
       {/* Amount Input */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-text-secondary">

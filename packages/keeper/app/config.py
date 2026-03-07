@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Keeper service configuration"""
     
     # Blockchain
-    arb_rpc_url: str = Field(default="https://arbitrum-sepolia.drpc.org", alias="ARB_RPC_URL")
+    arb_rpc_url: str = Field(default="https://arb-sepolia.g.alchemy.com/v2/7JENWA60Eynfh2ipu6KWZ", alias="ARB_RPC_URL")
     arb_ws_url: Optional[str] = Field(default=None, alias="ARB_WS_URL")
     chain_id: int = Field(default=421614, alias="CHAIN_ID")  # Sepolia testnet
     

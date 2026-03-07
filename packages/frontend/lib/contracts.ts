@@ -1,3 +1,10 @@
+// Contract Addresses - Arbitrum Sepolia Testnet
+export const VAULT_ADDRESS = '0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E' as `0x${string}`
+export const USDC_ADDRESS = '0xA526233CdaAd2Ed586908E5D9B3446e0A6F262E5' as `0x${string}`
+
+// RPC URLs
+export const RPC_URL = 'https://arb-sepolia.g.alchemy.com/v2/7JENWA60Eynfh2ipu6KWZ'
+
 export const VAULT_ABI = [
   {
     inputs: [{ name: 'assets', type: 'uint256' }, { name: 'receiver', type: 'address' }],
@@ -101,7 +108,18 @@ export const USDC_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'decimals',
+    outputs: [{ name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'symbol',
+    outputs: [{ name: '', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
-
-export const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS as `0x${string}`
-export const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`

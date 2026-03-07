@@ -3,14 +3,18 @@
 import * as React from 'react'
 import { RainbowKitProvider, getDefaultConfig, darkTheme } from '@rainbow-me/rainbowkit'
 import { WagmiProvider } from 'wagmi'
-import { arbitrum, arbitrumSepolia } from 'wagmi/chains'
+import { arbitrumSepolia } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { RPC_URL } from '@/lib/contracts'
 
 const config = getDefaultConfig({
   appName: 'Bond Credit Vault',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '7efde86d6f5ee30bddcb4c0dc4173daf',
-  chains: [arbitrumSepolia, arbitrum],
+  chains: [arbitrumSepolia],
   ssr: true,
+  transports: {
+    [arbitrumSepolia.id]: undefined, // Use default transport
+  },
 })
 
 const queryClient = new QueryClient()
