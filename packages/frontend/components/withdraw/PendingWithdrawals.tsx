@@ -42,11 +42,11 @@ export function PendingWithdrawals() {
   if (!isConnected) return null
   
   const userWithdrawals = (withdrawals as WithdrawalRequest[] || [])
-    .filter((w, i) => w.assets > 0n) // Only show non-empty
+    .filter((w, i) => w.assets > BigInt(0)) // Only show non-empty
     .map((w, i) => ({ ...w, requestId: i }))
     .reverse() // Newest first
   
-  if (userWithdrawals.length === 0 && (!pendingAssets || pendingAssets === 0n)) {
+  if (userWithdrawals.length === 0 && (!pendingAssets || pendingAssets === BigInt(0))) {
     return null
   }
   
