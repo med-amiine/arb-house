@@ -81,7 +81,7 @@ export function DepositForm() {
   }
   
   const handleDeposit = () => {
-    if (!amount) return
+    if (!amount || !address) return
     deposit({
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
