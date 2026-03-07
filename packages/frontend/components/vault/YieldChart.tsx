@@ -1,11 +1,29 @@
 'use client'
 
 import { TrendingUp, Info } from 'lucide-react'
+import { useKeeperVault } from '@/hooks/useKeeper'
 
 export function YieldChart() {
-  const dataPoints = [4.2, 5.1, 4.8, 6.2, 5.9, 7.1, 6.8, 8.2, 7.9, 8.5, 8.1, 8.42]
+  const { yieldHistory, isLoading } = useKeeperVault()
+  
+  // Use API data or fallback to defaults
+  const dataPoints = yieldHistory.length > 0 
+    ? yieldHistory.map(y => y.apy) 
+    : [4.2, 5.1, 4.8, 6.2, 5.9, 7.1, 6.8, 8.2, 7.9, 8.5, 8.1, 8.42]
+  
   const maxValue = Math.max(...dataPoints)
   const minValue = Math.min(...dataPoints)
+
+  if (isLoading) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-surface-hover rounded w-1/3 mb-4"></div>
+          <div className="h-64 bg-surface-hover rounded"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-surface border border-border rounded-xl p-6">

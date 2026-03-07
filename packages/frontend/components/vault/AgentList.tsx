@@ -1,44 +1,60 @@
 'use client'
 
 import { Bot, TrendingUp, Shield, AlertCircle } from 'lucide-react'
-
-const agents = [
-  {
-    id: 0,
-    name: 'Aave Agent',
-    strategy: 'Conservative Lending',
-    protocol: 'Aave V3',
-    allocation: 40,
-    apy: 6.2,
-    risk: 'low',
-    status: 'active',
-    description: 'Supplies USDC to Aave to earn lending yield',
-  },
-  {
-    id: 1,
-    name: 'Pendle Agent',
-    strategy: 'PT Yield Holding',
-    protocol: 'Pendle',
-    allocation: 35,
-    apy: 9.8,
-    risk: 'medium',
-    status: 'active',
-    description: 'Holds Pendle PT tokens for fixed yield',
-  },
-  {
-    id: 2,
-    name: 'Morpho Agent',
-    strategy: 'Optimized Lending',
-    protocol: 'Morpho',
-    allocation: 25,
-    apy: 7.5,
-    risk: 'low',
-    status: 'active',
-    description: 'Uses Morpho for optimized peer-to-peer lending',
-  },
-]
+import { useKeeperVault } from '@/hooks/useKeeper'
 
 export function AgentList() {
+  const { agents, isLoading } = useKeeperVault()
+
+  // Fallback data if API fails
+  const displayAgents = agents.length > 0 
+    ? agents 
+    : [
+        {
+          id: 0,
+          name: 'Aave Agent',
+          strategy: 'Conservative Lending',
+          protocol: 'Aave V3',
+          allocation: 40,
+          apy: 6.2,
+          risk: 'low',
+          active: true,
+        },
+        {
+          id: 1,
+          name: 'Pendle Agent',
+          strategy: 'PT Yield Holding',
+          protocol: 'Pendle',
+          allocation: 35,
+          apy: 9.8,
+          risk: 'medium',
+          active: true,
+        },
+        {
+          id: 2,
+          name: 'Morpho Agent',
+          strategy: 'Optimized Lending',
+          protocol: 'Morpho',
+          allocation: 25,
+          apy: 7.5,
+          risk: 'low',
+          active: true,
+        },
+      ]
+
+  if (isLoading) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-surface-hover rounded w-1/3"></div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-surface-hover rounded"></div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-surface border border-border rounded-xl p-6">
       <div className="flex items-center justify-between mb-6">
@@ -52,7 +68,7 @@ export function AgentList() {
       </div>
 
       <div className="space-y-4">
-        {agents.map((agent) => (
+        {displayAgents.map((agent) => (
           <div
             key={agent.id}
             className="p-4 rounded-lg bg-void/50 border border-border hover:border-accent/30 transition-colors"
@@ -74,7 +90,7 @@ export function AgentList() {
               </div>
             </div>
 
-            <p className="text-sm text-text-secondary mb-3">{agent.description}</p>
+            <p className="text-sm text-text-secondary mb-3">{agent.strategy}</p>
 
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1">
@@ -93,7 +109,7 @@ export function AgentList() {
 
               <div className="flex items-center gap-1 ml-auto">
                 <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span className="text-accent capitalize">{agent.status}</span>
+                <span className="text-accent capitalize">{agent.active ? 'active' : 'inactive'}</span>
               </div>
             </div>
           </div>
