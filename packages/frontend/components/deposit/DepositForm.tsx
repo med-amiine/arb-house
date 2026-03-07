@@ -194,12 +194,12 @@ export function DepositForm() {
             className="btn-primary w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
           >
             {(isApproving || isConfirmingApprove) ? (
-              <>
+              <span className="flex items-center gap-2">
                 <Loader2 size={18} className="animate-spin" />
                 {isConfirmingApprove ? 'Confirming...' : 'Approving...'}
-              </>
+              </span>
             ) : (
-              <>Approve USDC</>
+              <span>Approve USDC</span>
             )}
           </button>
         ) : (
@@ -209,15 +209,15 @@ export function DepositForm() {
             className="btn-primary w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
           >
             {(isDepositing || isConfirmingDeposit) ? (
-              <>
+              <span className="flex items-center gap-2">
                 <Loader2 size={18} className="animate-spin" />
                 {isConfirmingDeposit ? 'Confirming...' : 'Depositing...'}
-              </>
+              </span>
             ) : (
-              <>
+              <span className="flex items-center gap-2">
                 Deposit
                 <ArrowRight size={18} />
-              </>
+              </span>
             )}
           </button>
         )}
