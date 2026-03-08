@@ -1,38 +1,38 @@
 'use client'
 
-import { useKeeperVault } from '@/hooks/useKeeper'
+import { useVaultData } from '@/hooks/useVault'
 import { TrendingUp, Users, Wallet, Percent } from 'lucide-react'
 import { formatNumber } from '@/lib/utils'
 
 export function VaultStats() {
-  const { state, isLoading } = useKeeperVault()
+  const { sharePrice, tvl, agents, isLoading } = useVaultData()
 
   const stats = [
     {
       label: 'Total Value Locked',
-      value: isLoading || !state ? '...' : `$${formatNumber(state.tvl)}`,
-      change: state ? `+${state.tvl_change_24h}%` : '+0%',
+      value: isLoading ? '...' : `$${formatNumber(tvl)}`,
+      change: '+2.45%', // Mock change for now
       icon: Wallet,
       trend: 'up',
     },
     {
       label: 'Share Price',
-      value: isLoading || !state ? '...' : `$${state.share_price.toFixed(4)}`,
-      change: state ? `+${state.apy_change_24h.toFixed(2)}%` : '+0%',
+      value: isLoading ? '...' : `$${sharePrice.toFixed(4)}`,
+      change: '+1.23%', // Mock change for now
       icon: TrendingUp,
       trend: 'up',
     },
     {
-      label: 'Active Depositors',
-      value: isLoading || !state ? '...' : state.depositors.toLocaleString(),
-      change: '+5.2%',
+      label: 'Active Agents',
+      value: agents ? agents.length.toString() : '0',
+      change: '+0%',
       icon: Users,
       trend: 'up',
     },
     {
       label: 'Current APY',
-      value: isLoading || !state ? '...' : `${state.apy.toFixed(2)}%`,
-      change: state ? `+${state.apy_change_24h}%` : '+0%',
+      value: '12.5%', // Mock APY for now
+      change: '+2.1%',
       icon: Percent,
       trend: 'up',
     },

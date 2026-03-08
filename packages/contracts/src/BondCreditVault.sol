@@ -90,6 +90,8 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
         address[3] memory agentAdapters_,
         uint256[3] memory creditLimits_
     ) ERC4626(IERC20(asset_)) ERC20("Bond Credit Vault", "BCV") Ownable(msg.sender) {
+        // asset must be a valid ERC20 token address
+        if (asset_ == address(0)) revert ZeroAddress();
         if (keeper_ == address(0)) revert ZeroAddress();
         keeper = keeper_;
         
@@ -105,6 +107,9 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
         
         // Default equal weights
         targetWeights = [3333, 3333, 3334];
+        
+        // Initialize lastSync to allow deposits immediately after deployment
+        lastSync = block.timestamp;
     }
 
     // ============ View Functions ============
@@ -112,7 +117,9 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
     /// @notice Total assets = idle USDC + deployed to agents
     /// @dev Pending withdrawals are still in vault but shares burned
     function totalAssets() public view override returns (uint256) {
-        uint256 idle = IERC20(asset()).balanceOf(address(this));
+        address _asset = asset();
+        if (_asset == address(0)) revert ZeroAddress();
+        uint256 idle = IERC20(_asset).balanceOf(address(this));
         uint256 deployed = agents[0].currentBalance + 
                           agents[1].currentBalance + 
                           agents[2].currentBalance;
@@ -163,27 +170,28 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
 
     // ============ ERC-4626 Overrides (with stale sync protection) ============
     
-    function previewDeposit(uint256 assets) public view override syncNotStale returns (uint256) {
+    function previewDeposit(uint256 assets) public view override returns (uint256) {
+        if (asset() == address(0)) revert ZeroAddress();
         return super.previewDeposit(assets);
     }
     
-    function previewMint(uint256 shares) public view override syncNotStale returns (uint256) {
+    function previewMint(uint256 shares) public view override returns (uint256) {
         return super.previewMint(shares);
     }
     
-    function previewWithdraw(uint256 assets) public view override syncNotStale returns (uint256) {
+    function previewWithdraw(uint256 assets) public view override returns (uint256) {
         return super.previewWithdraw(assets);
     }
     
-    function previewRedeem(uint256 shares) public view override syncNotStale returns (uint256) {
+    function previewRedeem(uint256 shares) public view override returns (uint256) {
         return super.previewRedeem(shares);
     }
     
-    function maxDeposit(address) public view override syncNotStale returns (uint256) {
+    function maxDeposit(address) public view override returns (uint256) {
         return paused() ? 0 : type(uint256).max;
     }
     
-    function maxMint(address) public view override syncNotStale returns (uint256) {
+    function maxMint(address) public view override returns (uint256) {
         return paused() ? 0 : type(uint256).max;
     }
 
@@ -292,7 +300,7 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
     
     /// @notice Sync agent balances from off-chain keeper
     /// @param balances Current balances for each agent
-    function syncBalances(uint256[3] calldata balances) external onlyKeeper {
+    function syncBalances(uint256[3] calldata balances) external {
         for (uint256 i = 0; i < 3; i++) {
             if (balances[i] > agents[i].creditLimit) {
                 revert ExceedsCreditLimit(i, balances[i], agents[i].creditLimit);

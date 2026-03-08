@@ -1,133 +1,177 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from web3 import Web3
 import structlog
 
 from app.config import settings
+from app.database import (
+    get_db, SessionLocal, 
+    EventRepository, VaultStateRepository, 
+    WithdrawalRepository, UserPositionRepository,
+    Event, VaultState, PendingWithdrawalDB, UserPosition
+)
 
 router = APIRouter()
 logger = structlog.get_logger()
 
-# Mock data storage (in-memory for MVP)
-_mock_vault_state = {
-    "tvl": settings.mock_tvl,
-    "apy": settings.mock_apy,
-    "share_price": settings.mock_share_price,
-    "depositors": settings.mock_depositors,
-    "total_shares": 1152073.0,
-    "last_update": datetime.utcnow().isoformat(),
-    "last_sync": int(datetime.utcnow().timestamp()),
-}
+# Web3 setup
+w3 = Web3(Web3.HTTPProvider(settings.arb_rpc_url))
 
-_mock_agents = [
+# Full Vault ABI
+VAULT_ABI = [
     {
-        "id": 0,
-        "name": "Aave Agent",
-        "protocol": "Aave V3",
-        "apy": 6.2,
-        "allocation": 40,
-        "balance": 500000,
-        "risk": "low",
-        "strategy": "Conservative Lending",
-        "active": True,
+        "inputs": [],
+        "name": "totalAssets",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
     },
     {
-        "id": 1,
-        "name": "Pendle Agent",
-        "protocol": "Pendle",
-        "apy": 9.8,
-        "allocation": 35,
-        "balance": 437500,
-        "risk": "medium",
-        "strategy": "PT Yield Holding",
-        "active": True,
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
     },
     {
-        "id": 2,
-        "name": "Morpho Agent",
-        "protocol": "Morpho",
-        "apy": 7.5,
-        "allocation": 25,
-        "balance": 312500,
-        "risk": "low",
-        "strategy": "Optimized Lending",
-        "active": True,
-    },
-]
-
-_mock_transactions = [
-    {
-        "id": "tx_001",
-        "type": "deposit",
-        "amount": 10000,
-        "asset": "USDC",
-        "user": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-        "timestamp": datetime.utcnow().isoformat(),
-        "status": "completed",
-        "hash": "0xabc...",
+        "inputs": [{"name": "", "type": "uint256"}],
+        "name": "agents",
+        "outputs": [
+            {"name": "adapter", "type": "address"},
+            {"name": "creditLimit", "type": "uint256"},
+            {"name": "currentBalance", "type": "uint256"},
+            {"name": "active", "type": "bool"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
     },
     {
-        "id": "tx_002",
-        "type": "withdraw",
-        "amount": 5000,
-        "asset": "USDC",
-        "user": "0x8ba1f109551bD432803012645Hac136c82C3e8C",
-        "timestamp": (datetime.utcnow()).isoformat(),
-        "status": "completed",
-        "hash": "0xdef...",
+        "inputs": [],
+        "name": "lastSync",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
     },
-]
-
-_mock_yield_history = [
-    {"month": "Jan", "apy": 4.2},
-    {"month": "Feb", "apy": 5.1},
-    {"month": "Mar", "apy": 4.8},
-    {"month": "Apr", "apy": 6.2},
-    {"month": "May", "apy": 5.9},
-    {"month": "Jun", "apy": 7.1},
-    {"month": "Jul", "apy": 6.8},
-    {"month": "Aug", "apy": 8.2},
-    {"month": "Sep", "apy": 7.9},
-    {"month": "Oct", "apy": 8.5},
-    {"month": "Nov", "apy": 8.1},
-    {"month": "Dec", "apy": 8.42},
-]
-
-# Web3 setup for actual blockchain calls (when not in mock mode)
-w3 = None
-vault_contract = None
-keeper_account = None
-
-if not settings.mock_mode:
-    try:
-        w3 = Web3(Web3.HTTPProvider(settings.arb_rpc_url))
-        vault_contract = w3.eth.contract(
-            address=Web3.to_checksum_address(settings.vault_address),
-            abi=[
-                {
-                    "inputs": [{"name": "balances", "type": "uint256[3]"}],
-                    "name": "syncBalances",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [],
-                    "name": "lastSync",
-                    "outputs": [{"name": "", "type": "uint256"}],
-                    "stateMutability": "view",
-                    "type": "function"
-                },
+    {
+        "inputs": [],
+        "name": "totalIdle",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "shares", "type": "uint256"}],
+        "name": "convertToAssets",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "user", "type": "address"}],
+        "name": "getUserWithdrawals",
+        "outputs": [{
+            "name": "",
+            "type": "tuple[]",
+            "components": [
+                {"name": "shares", "type": "uint256"},
+                {"name": "assets", "type": "uint256"},
+                {"name": "timestamp", "type": "uint256"},
+                {"name": "claimed", "type": "bool"}
             ]
-        )
-        keeper_account = w3.eth.account.from_key(settings.keeper_private_key)
-        logger.info("blockchain_connection_established")
-    except Exception as e:
-        logger.error("blockchain_connection_failed", error=str(e))
+        }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "user", "type": "address"}],
+        "name": "pendingAssets",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    # Events
+    {
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "name": "receiver", "type": "address"},
+            {"name": "assets", "type": "uint256"},
+            {"name": "shares", "type": "uint256"}
+        ],
+        "name": "DepositMade",
+        "type": "event"
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "name": "user", "type": "address"},
+            {"indexed": True, "name": "requestId", "type": "uint256"},
+            {"name": "shares", "type": "uint256"},
+            {"name": "assets", "type": "uint256"}
+        ],
+        "name": "WithdrawalQueued",
+        "type": "event"
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "name": "user", "type": "address"},
+            {"indexed": True, "name": "requestId", "type": "uint256"},
+            {"name": "assets", "type": "uint256"}
+        ],
+        "name": "WithdrawalCompleted",
+        "type": "event"
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"name": "balances", "type": "uint256[3]"},
+            {"name": "timestamp", "type": "uint256"}
+        ],
+        "name": "BalancesSynced",
+        "type": "event"
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"name": "oldWeights", "type": "uint16[3]"},
+            {"name": "newWeights", "type": "uint16[3]"}
+        ],
+        "name": "Rebalanced",
+        "type": "event"
+    }
+]
 
-class VaultState(BaseModel):
+vault_contract = w3.eth.contract(
+    address=Web3.to_checksum_address(settings.vault_address),
+    abi=VAULT_ABI
+)
+
+USDC_DECIMALS = 6
+BCV_DECIMALS = 18
+
+
+def format_usdc(amount: int) -> float:
+    """Format USDC amount (6 decimals)"""
+    return amount / (10 ** USDC_DECIMALS)
+
+
+def format_bcv(amount: int) -> float:
+    """Format BCV amount (18 decimals)"""
+    return amount / (10 ** BCV_DECIMALS)
+
+
+# --- Pydantic Models ---
+
+class VaultStateResponse(BaseModel):
     tvl: float
     tvl_change_24h: float
     apy: float
@@ -137,197 +181,358 @@ class VaultState(BaseModel):
     total_shares: float
     last_update: str
     last_sync: int
+    idle_assets: float
+    agent_balances: List[float]
+
 
 class AgentInfo(BaseModel):
     id: int
     name: str
     protocol: str
-    apy: float
-    allocation: int
+    adapter: str
+    credit_limit: float
     balance: float
-    risk: str
-    strategy: str
+    apy: float
+    allocation: float
+    target_allocation: float
     active: bool
+
 
 class Transaction(BaseModel):
     id: str
     type: str
     amount: float
+    shares: float
     asset: str
     user: str
     timestamp: str
-    status: str
-    hash: str
+    block_number: int
+    tx_hash: str
 
-class YieldData(BaseModel):
-    month: str
-    apy: float
+
+class WithdrawalRequest(BaseModel):
+    request_id: int
+    shares: float
+    assets: float
+    timestamp: str
+    claimed: bool
+    status: str
+
+
+class UserBalance(BaseModel):
+    address: str
+    usdc_balance: float
+    bcv_shares: float
+    bcv_value: float
+    pending_withdrawals: List[WithdrawalRequest]
+    total_deposited: float
+    total_withdrawn: float
+    yield_earned: float
+
 
 class SyncResponse(BaseModel):
     success: bool
     tx_hash: Optional[str] = None
     error: Optional[str] = None
 
-@router.get("/state", response_model=VaultState)
-async def get_vault_state():
-    """Get current vault state"""
-    # Check actual lastSync from contract if available
-    last_sync = _mock_vault_state["last_sync"]
-    if vault_contract and w3:
-        try:
-            last_sync = vault_contract.functions.lastSync().call()
-        except Exception as e:
-            logger.warning("failed_to_fetch_lastSync", error=str(e))
-    
-    return VaultState(
-        tvl=_mock_vault_state["tvl"],
-        tvl_change_24h=12.5,
-        apy=_mock_vault_state["apy"],
-        apy_change_24h=0.3,
-        share_price=_mock_vault_state["share_price"],
-        depositors=_mock_vault_state["depositors"],
-        total_shares=_mock_vault_state["total_shares"],
-        last_update=_mock_vault_state["last_update"],
-        last_sync=last_sync,
-    )
+
+# --- Helper Functions ---
+
+def get_db_session():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def fetch_on_chain_state() -> Dict[str, Any]:
+    """Fetch current state from blockchain"""
+    try:
+        total_assets = vault_contract.functions.totalAssets().call()
+        total_shares = vault_contract.functions.totalSupply().call()
+        last_sync = vault_contract.functions.lastSync().call()
+        idle_assets = vault_contract.functions.totalIdle().call()
+        
+        # Calculate share price
+        if total_shares > 0:
+            share_price = (total_assets / (10 ** USDC_DECIMALS)) / (total_shares / (10 ** BCV_DECIMALS))
+        else:
+            share_price = 1.0
+        
+        # Fetch agent balances
+        agent_balances = []
+        for i in range(3):
+            agent_data = vault_contract.functions.agents(i).call()
+            agent_balances.append(format_usdc(agent_data[2]))
+        
+        return {
+            "total_assets": total_assets,
+            "total_shares": total_shares,
+            "share_price": share_price,
+            "last_sync": last_sync,
+            "idle_assets": idle_assets,
+            "agent_balances": agent_balances
+        }
+    except Exception as e:
+        logger.error("fetch_on_chain_state_failed", error=str(e))
+        raise
+
+
+# --- API Endpoints ---
+
+@router.get("/state", response_model=VaultStateResponse)
+async def get_vault_state(db: SessionLocal = Depends(get_db_session)):
+    """Get current vault state from blockchain"""
+    try:
+        state = fetch_on_chain_state()
+        
+        # Get depositor count from database
+        depositor_count = db.query(UserPosition).count()
+        
+        return VaultStateResponse(
+            tvl=format_usdc(state["total_assets"]),
+            tvl_change_24h=0.0,  # Would calculate from historical data
+            apy=8.42,  # Would calculate from yield events
+            apy_change_24h=0.0,
+            share_price=state["share_price"],
+            depositors=depositor_count,
+            total_shares=format_bcv(state["total_shares"]),
+            last_update=datetime.utcnow().isoformat(),
+            last_sync=state["last_sync"],
+            idle_assets=format_usdc(state["idle_assets"]),
+            agent_balances=state["agent_balances"]
+        )
+    except Exception as e:
+        logger.error("get_vault_state_failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/agents", response_model=List[AgentInfo])
 async def get_agents():
-    """Get all AI agent allocations"""
-    return [AgentInfo(**agent) for agent in _mock_agents]
+    """Get all AI agent allocations from blockchain"""
+    try:
+        agents = []
+        total_balance = 0
+        agent_data_list = []
+        
+        for i in range(3):
+            agent_data = vault_contract.functions.agents(i).call()
+            balance = format_usdc(agent_data[2])
+            total_balance += balance
+            agent_data_list.append({
+                "index": i,
+                "adapter": agent_data[0],
+                "credit_limit": format_usdc(agent_data[1]),
+                "balance": balance,
+                "active": agent_data[3]
+            })
+        
+        agent_names = ["Aave Agent", "Pendle Agent", "Morpho Agent"]
+        protocols = ["Aave V3", "Pendle", "Morpho"]
+        target_allocations = [0.40, 0.35, 0.25]  # 40/35/25 split
+        
+        for i, data in enumerate(agent_data_list):
+            allocation = (data["balance"] / total_balance * 100) if total_balance > 0 else 0
+            
+            agents.append(AgentInfo(
+                id=i,
+                name=agent_names[i],
+                protocol=protocols[i],
+                adapter=data["adapter"],
+                credit_limit=data["credit_limit"],
+                balance=data["balance"],
+                apy=8.42,  # Mock APY - would come from actual yield tracking
+                allocation=allocation,
+                target_allocation=target_allocations[i] * 100,
+                active=data["active"]
+            ))
+        
+        return agents
+    except Exception as e:
+        logger.error("get_agents_failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/transactions", response_model=List[Transaction])
-async def get_transactions(limit: int = 10):
-    """Get recent transactions"""
-    return [Transaction(**tx) for tx in _mock_transactions[:limit]]
+async def get_transactions(
+    limit: int = 10,
+    offset: int = 0,
+    user: Optional[str] = None,
+    db: SessionLocal = Depends(get_db_session)
+):
+    """Get indexed transactions from database"""
+    try:
+        repo = EventRepository(db)
+        
+        # Get both deposit and withdrawal events
+        events = repo.get_events(
+            event_type=None,  # Get all types
+            user_address=user.lower() if user else None,
+            limit=limit,
+            offset=offset
+        )
+        
+        transactions = []
+        for event in events:
+            args = event.get_args()
+            
+            if event.event_type == "DepositMade":
+                transactions.append(Transaction(
+                    id=f"{event.transaction_hash}_{event.log_index}",
+                    type="deposit",
+                    amount=format_usdc(args.get("assets", 0)),
+                    shares=format_bcv(args.get("shares", 0)),
+                    asset="USDC",
+                    user=args.get("receiver", ""),
+                    timestamp=event.created_at.isoformat() if event.created_at else datetime.utcnow().isoformat(),
+                    block_number=event.block_number,
+                    tx_hash=event.transaction_hash
+                ))
+            elif event.event_type == "WithdrawalQueued":
+                transactions.append(Transaction(
+                    id=f"{event.transaction_hash}_{event.log_index}",
+                    type="withdraw_request",
+                    amount=format_usdc(args.get("assets", 0)),
+                    shares=format_bcv(args.get("shares", 0)),
+                    asset="USDC",
+                    user=args.get("user", ""),
+                    timestamp=event.created_at.isoformat() if event.created_at else datetime.utcnow().isoformat(),
+                    block_number=event.block_number,
+                    tx_hash=event.transaction_hash
+                ))
+            elif event.event_type == "WithdrawalCompleted":
+                transactions.append(Transaction(
+                    id=f"{event.transaction_hash}_{event.log_index}",
+                    type="withdraw_complete",
+                    amount=format_usdc(args.get("assets", 0)),
+                    shares=0,
+                    asset="USDC",
+                    user=args.get("user", ""),
+                    timestamp=event.created_at.isoformat() if event.created_at else datetime.utcnow().isoformat(),
+                    block_number=event.block_number,
+                    tx_hash=event.transaction_hash
+                ))
+        
+        return transactions
+    except Exception as e:
+        logger.error("get_transactions_failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/yield-history", response_model=List[YieldData])
-async def get_yield_history():
-    """Get 12-month yield history"""
-    return [YieldData(**y) for y in _mock_yield_history]
 
-@router.get("/user/{user_address}/balance")
-async def get_user_balance(user_address: str):
+@router.get("/yield-history")
+async def get_yield_history(db: SessionLocal = Depends(get_db_session)):
+    """Get yield history from indexed events"""
+    try:
+        repo = EventRepository(db)
+        sync_events = repo.get_events(event_type="BalancesSynced", limit=100)
+        
+        # Calculate yield from balance changes
+        yield_history = []
+        for event in sync_events:
+            args = event.get_args()
+            balances = args.get("balances", [0, 0, 0])
+            total = sum(balances) / (10 ** USDC_DECIMALS)
+            
+            yield_history.append({
+                "timestamp": event.created_at.isoformat() if event.created_at else datetime.utcnow().isoformat(),
+                "block_number": event.block_number,
+                "total_deployed": total,
+                "agent_balances": [b / (10 ** USDC_DECIMALS) for b in balances]
+            })
+        
+        return yield_history
+    except Exception as e:
+        logger.error("get_yield_history_failed", error=str(e))
+        return []
+
+
+@router.get("/user/{user_address}/balance", response_model=UserBalance)
+async def get_user_balance(user_address: str, db: SessionLocal = Depends(get_db_session)):
     """Get user balance and positions"""
-    return {
-        "address": user_address,
-        "usdc_balance": 5000.0,
-        "bcv_shares": 4608.0,
-        "bcv_value": 5000.0,
-        "pending_withdrawals": [],
-        "total_deposited": 10000.0,
-        "total_withdrawn": 5000.0,
-        "yield_earned": 125.50,
-    }
+    try:
+        # Validate address
+        if not Web3.is_address(user_address):
+            raise HTTPException(status_code=400, detail="Invalid address")
+        
+        user_address = Web3.to_checksum_address(user_address)
+        
+        # Fetch from blockchain
+        shares = vault_contract.functions.balanceOf(user_address).call()
+        assets = vault_contract.functions.convertToAssets(shares).call()
+        pending = vault_contract.functions.pendingAssets(user_address).call()
+        
+        # Get withdrawal history
+        withdrawals = vault_contract.functions.getUserWithdrawals(user_address).call()
+        
+        # Get pending from database
+        withdrawal_repo = WithdrawalRepository(db)
+        db_withdrawals = withdrawal_repo.get_by_user(user_address.lower())
+        
+        pending_withdrawals = []
+        for i, w in enumerate(withdrawals):
+            shares_val, assets_val, timestamp, claimed = w
+            
+            # Find status from database
+            status = "completed" if claimed else "pending"
+            for db_w in db_withdrawals:
+                if db_w.request_id == i:
+                    status = db_w.status
+                    break
+            
+            pending_withdrawals.append(WithdrawalRequest(
+                request_id=i,
+                shares=format_bcv(shares_val),
+                assets=format_usdc(assets_val),
+                timestamp=datetime.fromtimestamp(timestamp).isoformat(),
+                claimed=claimed,
+                status=status
+            ))
+        
+        # Get user position from database
+        position_repo = UserPositionRepository(db)
+        position = position_repo.get_or_create(user_address.lower())
+        
+        # Calculate yield earned
+        yield_earned = max(0, format_usdc(position.total_withdrawn + assets - position.total_deposited))
+        
+        return UserBalance(
+            address=user_address,
+            usdc_balance=format_usdc(assets),
+            bcv_shares=format_bcv(shares),
+            bcv_value=format_usdc(assets),
+            pending_withdrawals=pending_withdrawals,
+            total_deposited=format_usdc(position.total_deposited),
+            total_withdrawn=format_usdc(position.total_withdrawn),
+            yield_earned=yield_earned
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_user_balance_failed", error=str(e), user=user_address)
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/deposit")
-async def mock_deposit(amount: float, user: str):
-    """Mock deposit endpoint"""
-    global _mock_vault_state
-    _mock_vault_state["tvl"] += amount
-    _mock_vault_state["last_update"] = datetime.utcnow().isoformat()
-    
-    new_tx = {
-        "id": f"tx_{len(_mock_transactions) + 1:03d}",
-        "type": "deposit",
-        "amount": amount,
-        "asset": "USDC",
-        "user": user,
-        "timestamp": datetime.utcnow().isoformat(),
-        "status": "completed",
-        "hash": f"0x{hash(str(datetime.utcnow())):x}"[:10] + "...",
-    }
-    _mock_transactions.insert(0, new_tx)
-    
-    return {
-        "success": True,
-        "transaction": new_tx,
-        "new_tvl": _mock_vault_state["tvl"],
-        "shares_issued": amount / _mock_vault_state["share_price"],
-    }
 
-@router.post("/withdraw")
-async def mock_withdraw(amount: float, user: str):
-    """Mock withdrawal endpoint"""
-    global _mock_vault_state
-    if amount > _mock_vault_state["tvl"]:
-        return {"success": False, "error": "Insufficient vault liquidity"}
-    
-    _mock_vault_state["tvl"] -= amount
-    _mock_vault_state["last_update"] = datetime.utcnow().isoformat()
-    
-    new_tx = {
-        "id": f"tx_{len(_mock_transactions) + 1:03d}",
-        "type": "withdraw",
-        "amount": amount,
-        "asset": "USDC",
-        "user": user,
-        "timestamp": datetime.utcnow().isoformat(),
-        "status": "completed",
-        "hash": f"0x{hash(str(datetime.utcnow())):x}"[:10] + "...",
-    }
-    _mock_transactions.insert(0, new_tx)
-    
-    return {
-        "success": True,
-        "transaction": new_tx,
-        "new_tvl": _mock_vault_state["tvl"],
-        "shares_burned": amount / _mock_vault_state["share_price"],
-    }
+@router.get("/user/{user_address}/transactions")
+async def get_user_transactions(
+    user_address: str,
+    limit: int = 10,
+    db: SessionLocal = Depends(get_db_session)
+):
+    """Get transactions for a specific user"""
+    return await get_transactions(limit=limit, user=user_address, db=db)
+
 
 @router.post("/sync", response_model=SyncResponse)
-async def sync_balances():
-    """Manually trigger balance sync on the vault contract"""
-    if settings.mock_mode:
-        # In mock mode, just update the timestamp
-        _mock_vault_state["last_sync"] = int(datetime.utcnow().timestamp())
-        _mock_vault_state["last_update"] = datetime.utcnow().isoformat()
-        logger.info("mock_sync_completed")
-        return SyncResponse(success=True, tx_hash="mock_tx_hash")
-    
-    if not vault_contract or not w3 or not keeper_account:
-        logger.error("blockchain_not_configured")
-        return SyncResponse(success=False, error="Blockchain not configured")
+async def trigger_sync():
+    """Manually trigger balance sync (requires keeper auth in production)"""
+    from app.services.balance_sync import BalanceSync
     
     try:
-        # Prepare balances array (mock values for now)
-        balances = [500000, 437500, 312500]  # 6 decimal USDC amounts
-        
-        logger.info("sending_sync_balances", balances=balances)
-        
-        # Build and sign transaction
-        # Get gas price (fallback for networks without EIP-1559)
-        try:
-            base_fee = w3.eth.get_block('latest')['baseFeePerGas']
-            max_priority = w3.eth.max_priority_fee_per_gas
-            max_fee = base_fee * 2 + max_priority  # Double the base fee to ensure inclusion
-        except (AttributeError, KeyError):
-            # Fallback for non-EIP-1559 networks
-            gas_price = w3.eth.gas_price
-            max_fee = int(gas_price * 1.5)  # Add 50% buffer
-            max_priority = int(gas_price * 0.1)
-        
-        tx = vault_contract.functions.syncBalances(balances).build_transaction({
-            'from': keeper_account.address,
-            'nonce': w3.eth.get_transaction_count(keeper_account.address),
-            'gas': 200000,
-            'maxFeePerGas': max_fee,
-            'maxPriorityFeePerGas': max_priority
-        })
-        
-        signed = w3.eth.account.sign_transaction(tx, settings.keeper_private_key)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        
-        # Wait for receipt
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
-        
-        if receipt.status == 1:
-            logger.info("sync_balances_success", tx_hash=tx_hash.hex())
-            return SyncResponse(success=True, tx_hash=tx_hash.hex())
-        else:
-            logger.error("sync_balances_failed", tx_hash=tx_hash.hex())
-            return SyncResponse(success=False, error="Transaction failed")
-            
+        sync_service = BalanceSync()
+        # This will run one sync cycle
+        await sync_service._sync_balances()
+        return SyncResponse(success=True)
     except Exception as e:
-        logger.error("sync_balances_error", error=str(e))
+        logger.error("manual_sync_failed", error=str(e))
         return SyncResponse(success=False, error=str(e))

@@ -1,0 +1,97 @@
+'use client'
+
+import { useReadContract } from 'wagmi'
+import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
+import { useEffect, useState } from 'react'
+import { Activity, AlertTriangle, CheckCircle2 } from 'lucide-react'
+
+export function SyncHealth() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const { data: lastSync } = useReadContract({
+    address: VAULT_ADDRESS,
+    abi: VAULT_ABI,
+    functionName: 'lastSync',
+  })
+
+  const MAX_SYNC_AGE = 12 * 60 * 60 // 12 hours in seconds
+
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [progress, setProgress] = useState(100)
+
+  useEffect(() => {
+    if (!lastSync) return
+
+    const interval = setInterval(() => {
+      const now = Math.floor(Date.now() / 1000)
+      const age = now - Number(lastSync)
+      const remaining = Math.max(0, MAX_SYNC_AGE - age)
+      const pct = (remaining / MAX_SYNC_AGE) * 100
+
+      setTimeLeft(remaining)
+      setProgress(pct)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [lastSync])
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    return `${h}h ${m}m ${s}s`
+  }
+
+  if (!mounted || !lastSync) return null
+
+  const status = progress > 50 ? 'healthy' : progress > 25 ? 'warning' : 'critical'
+
+  const colors = {
+    healthy: 'text-accent bg-accent/10 border-accent/30',
+    warning: 'text-warning bg-warning/10 border-warning/30',
+    critical: 'text-danger bg-danger/10 border-danger/30'
+  }
+
+  const icons = {
+    healthy: CheckCircle2,
+    warning: Activity,
+    critical: AlertTriangle
+  }
+
+  const Icon = icons[status]
+
+  return (
+    <div className={`rounded-xl p-4 border ${colors[status]}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Icon className="w-5 h-5" />
+          <span className="font-medium">Vault Sync Health</span>
+        </div>
+        <span className="text-2xl font-bold font-mono">
+          {formatTime(timeLeft)}
+        </span>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+        <div
+          className={`h-full transition-all duration-1000 ${
+            status === 'healthy' ? 'bg-accent' :
+            status === 'warning' ? 'bg-warning' : 'bg-danger'
+          }`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <p className="text-xs mt-2 opacity-80">
+        {status === 'healthy' ? 'Keeper is syncing regularly. Deposits enabled.' :
+         status === 'warning' ? 'Sync needed soon. Deposits may pause soon.' :
+         'CRITICAL: Deposits are currently paused. Sync required.'}
+      </p>
+    </div>
+  )
+}

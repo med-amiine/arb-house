@@ -56,12 +56,24 @@ class GizaAgentClient:
             return 0
             
         try:
-            # TODO: Actual Giza SDK call
-            # balance = await self.client.get_tvl(agent_id)
+            # TODO: Replace with actual Giza SDK call
+            # For now, simulate realistic agent balances
+            # In production, this would query the Giza API for real TVL
             
-            # Mock for now
-            logger.debug("fetching_agent_balance", agent_index=agent_index, agent_id=agent_id)
-            return 0  # Placeholder
+            # Simulate different balance levels for different agents
+            base_balances = [450000 * 10**6, 380000 * 10**6, 420000 * 10**6]  # USDC decimals
+            balance = base_balances[agent_index]
+            
+            # Add some randomness to simulate real market conditions
+            import random
+            variation = random.uniform(-0.05, 0.05)  # ±5% variation
+            balance = int(balance * (1 + variation))
+            
+            logger.debug("fetched_agent_balance", 
+                        agent_index=agent_index, 
+                        agent_id=agent_id,
+                        balance=balance)
+            return balance
             
         except Exception as e:
             logger.error("get_agent_balance_failed", agent_index=agent_index, error=str(e))

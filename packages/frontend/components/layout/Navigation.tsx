@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { Vault, TrendingUp, History, Menu, X } from 'lucide-react'
+import { Vault, History, Menu, X, LayoutDashboard, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 
 const navItems = [
-  { href: '/', label: 'Vault', icon: Vault },
-  { href: '/yield', label: 'Yield', icon: TrendingUp },
+  { href: '/', label: 'Home', icon: Vault },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/vault-analytics', label: 'Analytics', icon: TrendingUp },
   { href: '/transactions', label: 'History', icon: History },
 ]
 
@@ -20,7 +21,7 @@ export function Navigation() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-void/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group" onClick={() => setMobileMenuOpen(false)}>
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center">
               <Vault className="w-5 h-5 text-white" />
             </div>

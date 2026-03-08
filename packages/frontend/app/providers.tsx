@@ -23,16 +23,24 @@ const customTheme = darkTheme({
   overlayBlur: 'small',
 })
 
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
+  return mounted ? <>{children}</> : null
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider 
-          theme={customTheme}
-          modalSize="compact"
-        >
-          {children}
-        </RainbowKitProvider>
+        <ClientOnly>
+          <RainbowKitProvider 
+            theme={customTheme}
+            modalSize="compact"
+          >
+            {children}
+          </RainbowKitProvider>
+        </ClientOnly>
       </QueryClientProvider>
     </WagmiProvider>
   )

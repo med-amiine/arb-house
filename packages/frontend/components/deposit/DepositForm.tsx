@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { ArrowRight, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowRight, Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
 import { VAULT_ADDRESS, VAULT_ABI, USDC_ADDRESS, USDC_ABI } from '@/lib/contracts'
 import { formatNumber } from '@/lib/utils'
 
@@ -23,6 +23,13 @@ const VAULT_FULL_ABI = [
     inputs: [],
     name: "lastSync",
     outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "keeper",
+    outputs: [{ name: "", type: "address" }],
     stateMutability: "view",
     type: "function"
   },
@@ -74,6 +81,13 @@ export function DepositForm() {
     query: { enabled: !!address && !!VAULT_ADDRESS },
   })
   
+  // Read last sync time to check if vault is stale
+  const { data: lastSync } = useReadContract({
+    address: VAULT_ADDRESS,
+    abi: VAULT_FULL_ABI,
+    functionName: 'lastSync',
+  })
+  
   // Read preview deposit
   const { data: previewShares, error: previewError } = useReadContract({
     address: VAULT_ADDRESS,
@@ -89,49 +103,23 @@ export function DepositForm() {
   // Deposit
   const { writeContract: deposit, isPending: isDepositing, data: depositHash, error: depositError } = useWriteContract()
   
-  // Sync balances after deposit
-  const { writeContract: syncBalances, isPending: isSyncing, data: syncHash, error: syncError } = useWriteContract()
-  
   // Wait for transactions
   const { isLoading: isConfirmingApprove, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({ hash: approveHash })
   const { isLoading: isConfirmingDeposit, isSuccess: isDepositSuccess } = useWaitForTransactionReceipt({ hash: depositHash })
-  const { isLoading: isConfirmingSync, isSuccess: isSyncSuccess } = useWaitForTransactionReceipt({ hash: syncHash })
   
-  // Handle successful deposit - trigger sync
+  // Check if sync is stale (> 12 hours = 43200 seconds)
+  const isSyncStale = lastSync ? (Date.now() / 1000 - Number(lastSync)) > 43200 : false
+  const timeSinceSync = lastSync ? Math.floor((Date.now() / 1000 - Number(lastSync)) / 3600) : null
+  
+  // Handle successful deposit
   useEffect(() => {
     if (isDepositSuccess && depositHash) {
-      console.log('Deposit confirmed, triggering balance sync...')
-      setSyncStatus('syncing')
-      
-      // Auto-sync balances after deposit
-      try {
-        const vaultAddr = validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
-        syncBalances({
-          address: vaultAddr,
-          abi: VAULT_FULL_ABI,
-          functionName: 'syncBalances',
-          args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]], // Agent balances in 6 decimals
-        })
-      } catch (err) {
-        console.error('Failed to trigger sync:', err)
-        setSyncStatus('error')
-      }
-    }
-  }, [isDepositSuccess, depositHash, syncBalances])
-  
-  // Handle successful sync
-  useEffect(() => {
-    if (isSyncSuccess) {
-      console.log('Balance sync confirmed')
-      setSyncStatus('synced')
+      console.log('Deposit confirmed:', depositHash)
       setAmount('')
       refetchAllowance()
       refetchBalance()
-      
-      // Reset sync status after 5 seconds
-      setTimeout(() => setSyncStatus('idle'), 5000)
     }
-  }, [isSyncSuccess, refetchAllowance, refetchBalance])
+  }, [isDepositSuccess, depositHash, refetchAllowance, refetchBalance])
   
   const parsedAmount = amount ? parseUnits(amount, USDC_DECIMALS) : BigInt(0)
   const needsApproval = allowance !== undefined && parsedAmount > (allowance as bigint)
@@ -157,6 +145,13 @@ export function DepositForm() {
   
   const handleDeposit = () => {
     if (!amount || !address) return
+    
+    // Check if sync is stale
+    if (isSyncStale) {
+      setValidationError('Vault balances are stale. Please wait for the keeper to sync before depositing.')
+      return
+    }
+    
     try {
       const vaultAddr = validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
       
@@ -170,23 +165,6 @@ export function DepositForm() {
       })
     } catch (err) {
       setValidationError(err instanceof Error ? err.message : 'Deposit failed')
-    }
-  }
-  
-  const handleManualSync = () => {
-    try {
-      const vaultAddr = validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
-      setSyncStatus('syncing')
-      
-      syncBalances({
-        address: vaultAddr,
-        abi: VAULT_FULL_ABI,
-        functionName: 'syncBalances',
-        args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]],
-      })
-    } catch (err) {
-      console.error('Manual sync failed:', err)
-      setSyncStatus('error')
     }
   }
   
@@ -205,67 +183,76 @@ export function DepositForm() {
   }
   
   const balanceFormatted = usdcBalance ? formatNumber(Number(formatUnits(usdcBalance as bigint, USDC_DECIMALS))) : '0'
-  const isProcessing = isApproving || isConfirmingApprove || isDepositing || isConfirmingDeposit || isSyncing || isConfirmingSync
+  const isProcessing = isApproving || isConfirmingApprove || isDepositing || isConfirmingDeposit
+  
+  // Check for stale sync error
+  const isStaleError = previewError?.message?.includes('StaleBalances') || 
+                       depositError?.message?.includes('StaleBalances') ||
+                       validationError?.includes('stale')
   
   return (
     <div className="space-y-6">
-      {/* Sync Status Indicator */}
-      {syncStatus !== 'idle' && (
-        <div className={`rounded-lg p-4 text-sm ${
-          syncStatus === 'syncing' ? 'bg-warning/10 border border-warning/30' :
-          syncStatus === 'synced' ? 'bg-accent/10 border border-accent/30' :
-          'bg-danger/10 border border-danger/30'
-        }`}>
-          <div className="flex items-center gap-2">
-            {syncStatus === 'syncing' && <RefreshCw size={16} className="animate-spin text-warning" />}
-            {syncStatus === 'synced' && <ArrowRight size={16} className="text-accent" />}
-            {syncStatus === 'error' && <span className="text-danger">⚠</span>}
-            <span className={
-              syncStatus === 'syncing' ? 'text-warning' :
-              syncStatus === 'synced' ? 'text-accent' :
-              'text-danger'
-            }>
-              {syncStatus === 'syncing' && 'Syncing vault balances...'}
-              {syncStatus === 'synced' && 'Vault synced successfully!'}
-              {syncStatus === 'error' && 'Sync failed. Please try manual sync.'}
-            </span>
+      {/* Stale Sync Warning */}
+      {isSyncStale && (
+        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-warning font-medium text-sm">Vault Sync Stale</p>
+              <p className="text-text-secondary text-sm mt-1">
+                Last sync was {timeSinceSync} hours ago. Deposits require a sync within the last 12 hours.
+                The keeper will sync automatically, or you can trigger a manual sync from the keeper service.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Stale Error Message */}
+      {isStaleError && (
+        <div className="bg-danger/10 border border-danger/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-danger font-medium text-sm">Stale Balances</p>
+              <p className="text-text-secondary text-sm mt-1">
+                The vault requires a recent balance sync before deposits. Please wait for the keeper service to sync,
+                or contact the administrator.
+              </p>
+            </div>
           </div>
         </div>
       )}
       
       {/* Validation Error */}
-      {validationError && (
+      {validationError && !isStaleError && (
         <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
-          <p className="text-danger font-medium">Configuration Error:</p>
+          <p className="text-danger font-medium">Error:</p>
           <p className="text-text-secondary">{validationError}</p>
         </div>
       )}
       
       {/* Contract Errors */}
-      {(balanceError || allowanceError || previewError || approveError || depositError || syncError) && (
+      {(balanceError || allowanceError || (previewError && !isStaleError) || (approveError && !isStaleError) || (depositError && !isStaleError)) && (
         <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
           <p className="text-danger font-medium">Transaction Error:</p>
           {balanceError && <p className="text-text-secondary">Balance: {balanceError.message}</p>}
           {allowanceError && <p className="text-text-secondary">Allowance: {allowanceError.message}</p>}
-          {previewError && <p className="text-text-secondary">Preview: {previewError.message}</p>}
+          {previewError && !isStaleError && <p className="text-text-secondary">Preview: {previewError.message}</p>}
           {approveError && <p className="text-text-secondary">Approve: {approveError.message}</p>}
-          {depositError && <p className="text-text-secondary">Deposit: {depositError.message}</p>}
-          {syncError && <p className="text-text-secondary">Sync: {syncError.message}</p>}
+          {depositError && !isStaleError && <p className="text-text-secondary">Deposit: {depositError.message}</p>}
         </div>
       )}
       
-      {/* Manual Sync Button */}
-      <button
-        onClick={handleManualSync}
-        disabled={isSyncing || isConfirmingSync}
-        className="w-full btn-secondary flex items-center justify-center gap-2 py-2 text-sm"
-      >
-        {(isSyncing || isConfirmingSync) ? (
-          <><RefreshCw size={14} className="animate-spin" /> Syncing...</>
-        ) : (
-          <><RefreshCw size={14} /> Sync Vault Balances</>
-        )}
-      </button>
+      {/* Sync Status Info */}
+      {lastSync && (
+        <div className="flex items-center justify-between text-xs text-text-muted">
+          <span>Last vault sync: {timeSinceSync !== null ? `${timeSinceSync}h ago` : 'Unknown'}</span>
+          <span className={isSyncStale ? 'text-warning' : 'text-accent'}>
+            {isSyncStale ? 'Sync required' : 'Sync active'}
+          </span>
+        </div>
+      )}
       
       {/* Amount Input */}
       <div className="space-y-2">
@@ -274,7 +261,10 @@ export function DepositForm() {
           <input
             type="number"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              setAmount(e.target.value)
+              setValidationError(null)
+            }}
             placeholder="0.00"
             className="input w-full pr-20 text-lg"
             min="0"
@@ -295,7 +285,7 @@ export function DepositForm() {
       </div>
       
       {/* Preview */}
-      {previewShares && amount && (
+      {previewShares && amount && !isStaleError && (
         <div className="bg-surface-hover rounded-lg p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-text-secondary">You will receive</span>
@@ -330,18 +320,18 @@ export function DepositForm() {
         ) : (
           <button
             onClick={handleDeposit}
-            disabled={isProcessing || !amount || parseFloat(amount) <= 0 || !!validationError}
+            disabled={isProcessing || !amount || parseFloat(amount) <= 0 || !!validationError || isSyncStale}
             className="btn-primary w-full flex items-center justify-center gap-2 py-4 disabled:opacity-50"
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
                 <Loader2 size={18} className="animate-spin" />
-                {isConfirmingDeposit ? 'Confirming Deposit...' : isDepositing ? 'Depositing...' : 'Syncing...'}
+                {isConfirmingDeposit ? 'Confirming...' : 'Depositing...'}
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                Deposit
-                <ArrowRight size={18} />
+                {isSyncStale ? 'Vault Sync Required' : 'Deposit'}
+                {!isSyncStale && <ArrowRight size={18} />}
               </span>
             )}
           </button>
@@ -349,9 +339,9 @@ export function DepositForm() {
       </div>
       
       {/* Success Messages */}
-      {isSyncSuccess && (
+      {isDepositSuccess && (
         <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
-          <p className="text-accent text-sm">Deposit & Sync completed!</p>
+          <p className="text-accent text-sm">Deposit completed successfully!</p>
         </div>
       )}
     </div>

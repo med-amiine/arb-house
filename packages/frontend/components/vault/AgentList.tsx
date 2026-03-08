@@ -1,46 +1,26 @@
 'use client'
 
 import { Bot, TrendingUp, Shield, AlertCircle } from 'lucide-react'
-import { useKeeperVault } from '@/hooks/useKeeper'
+import { useVaultData } from '@/hooks/useVault'
 
 export function AgentList() {
-  const { agents, isLoading } = useKeeperVault()
+  const { agents, tvl, isLoading } = useVaultData()
 
-  // Fallback data if API fails
-  const displayAgents = agents.length > 0 
-    ? agents 
-    : [
-        {
-          id: 0,
-          name: 'Aave Agent',
-          strategy: 'Conservative Lending',
-          protocol: 'Aave V3',
-          allocation: 40,
-          apy: 6.2,
-          risk: 'low',
-          active: true,
-        },
-        {
-          id: 1,
-          name: 'Pendle Agent',
-          strategy: 'PT Yield Holding',
-          protocol: 'Pendle',
-          allocation: 35,
-          apy: 9.8,
-          risk: 'medium',
-          active: true,
-        },
-        {
-          id: 2,
-          name: 'Morpho Agent',
-          strategy: 'Optimized Lending',
-          protocol: 'Morpho',
-          allocation: 25,
-          apy: 7.5,
-          risk: 'low',
-          active: true,
-        },
-      ]
+  // Agent names and strategies based on deployment
+  const agentInfo = [
+    { name: 'Aave Agent', strategy: 'Conservative Lending', protocol: 'Aave V3', risk: 'low' },
+    { name: 'Pendle Agent', strategy: 'PT Yield Holding', protocol: 'Pendle', risk: 'medium' },
+    { name: 'Morpho Agent', strategy: 'Optimized Lending', protocol: 'Morpho', risk: 'low' },
+  ]
+
+  // Combine real agent data with strategy info
+  const displayAgents = agents ? agents.map((agent, index) => ({
+    ...agent,
+    ...agentInfo[index],
+    apy: 7.5 + Math.random() * 5, // Mock APY for now
+    allocation: tvl > 0 ? Math.round((agent.balance / tvl) * 100) : 33,
+    active: true,
+  })) : []
 
   if (isLoading) {
     return (
@@ -68,9 +48,9 @@ export function AgentList() {
       </div>
 
       <div className="space-y-4">
-        {displayAgents.map((agent) => (
+        {displayAgents.map((agent, index) => (
           <div
-            key={agent.id}
+            key={index}
             className="p-4 rounded-lg bg-void/50 border border-border hover:border-accent/30 transition-colors"
           >
             <div className="flex items-start justify-between mb-3">
@@ -85,7 +65,7 @@ export function AgentList() {
               </div>
               
               <div className="text-right">
-                <div className="text-lg font-bold text-accent">{agent.apy.toFixed(1)}% APY</div>
+                <div className="text-lg font-bold text-accent">${agent.balance?.toFixed(2) || '0.00'}</div>
                 <div className="text-xs text-text-muted">{agent.allocation}% allocation</div>
               </div>
             </div>
@@ -109,7 +89,7 @@ export function AgentList() {
 
               <div className="flex items-center gap-1 ml-auto">
                 <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span className="text-accent capitalize">{agent.active ? 'active' : 'inactive'}</span>
+                <span className="text-accent capitalize">active</span>
               </div>
             </div>
           </div>

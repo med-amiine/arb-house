@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   keywords: ['DeFi', 'yield', 'AI', 'Arbitrum', 'credit vault'],
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children,
 }: {
