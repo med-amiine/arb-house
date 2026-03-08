@@ -11,7 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vault-analytics', label: 'Analytics', icon: TrendingUp },
   { href: '/transactions', label: 'History', icon: History },
-  { href: '/owner', label: 'Owner', icon: Crown },
+  { href: '/admin', label: 'Admin', icon: Crown },
 ]
 
 export function Navigation() {

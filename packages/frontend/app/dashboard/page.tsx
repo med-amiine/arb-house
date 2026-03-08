@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { VaultStats } from '@/components/vault/VaultStats'
+import { VaultState } from '@/components/vault/VaultState'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 import { RecentActivity } from '@/components/vault/RecentActivity'
@@ -93,9 +93,9 @@ export default function DashboardPage() {
           <SyncHealth />
         </motion.div>
 
-        {/* Stats Section */}
+        {/* DOMINANT: Vault State Card */}
         <motion.section variants={itemVariants} className="mb-8">
-          <VaultStats />
+          <VaultState />
         </motion.section>
 
         {/* Main Content Grid */}
