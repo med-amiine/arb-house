@@ -4,6 +4,7 @@ import './globals.css'
 import { Providers } from './providers'
 import { Navigation } from '@/components/layout/Navigation'
 import { Footer } from '@/components/layout/Footer'
+import { AnimatedLayout } from '@/components/layout/AnimatedLayout'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -34,9 +35,9 @@ export default function RootLayout({
         <Providers>
           <div className="flex flex-col min-h-screen">
             <Navigation />
-            <main className="flex-1">
+            <AnimatedLayout>
               {children}
-            </main>
+            </AnimatedLayout>
             <Footer />
           </div>
         </Providers>
