@@ -59,7 +59,7 @@ export function Dialog({ isOpen, onClose, title, children }: DialogProps) {
               exit={{ opacity: 0, scale: 0.9, y: 40 }}
               transition={{ 
                 duration: 0.3,
-                ease: [0.25, 0.1, 0.25, 1]
+                ease: [0.25, 0.1, 0.25, 1] as const
               }}
               className="relative w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl pointer-events-auto max-h-[90vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}

@@ -92,6 +92,7 @@ curl http://localhost:8000/vault/user/0x.../balance
 | `GET /vault/user/{address}/balance` | User position and pending withdrawals |
 | `GET /vault/user/{address}/transactions` | User-specific transactions |
 | `POST /vault/sync` | Trigger manual balance sync |
+| `POST /vault/allocate` | Allocate idle funds to agents based on target weights |
 
 ## Background Services
 
@@ -104,6 +105,7 @@ curl http://localhost:8000/vault/user/0x.../balance
 - Runs every 5 minutes (configurable)
 - Fetches agent balances from contract
 - Calls `syncBalances()` on vault
+- **Automatically allocates idle funds to agents when rebalancing is needed**
 
 ### Withdrawal Processor
 - Monitors pending withdrawals

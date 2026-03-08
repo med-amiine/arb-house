@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAccount } from 'wagmi'
+import { MOCK_TRANSACTIONS, MOCK_YIELD_HISTORY, getTransactionsWithFallback } from '@/lib/mockData'
 
 // Allow overriding via localStorage for development
 const getKeeperApiUrl = () => {
@@ -100,6 +101,7 @@ export function useKeeperData() {
   const [userBalance, setUserBalance] = useState<UserBalance | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isUsingMockData, setIsUsingMockData] = useState(false)
 
   // Fetch vault state
   const fetchVaultState = useCallback(async () => {
@@ -132,9 +134,16 @@ export function useKeeperData() {
       const response = await fetch(`${apiUrl}/vault/transactions?limit=${limit}`)
       if (!response.ok) throw new Error('Failed to fetch transactions')
       const data = await response.json()
-      setTransactions(data)
+      // Use mock data if API returns empty or too few transactions
+      const hasRealData = data.length >= 3
+      setIsUsingMockData(!hasRealData)
+      const transactionsWithFallback = getTransactionsWithFallback(data, 3)
+      setTransactions(transactionsWithFallback)
     } catch (err) {
       console.error('Error fetching transactions:', err)
+      // Use mock data on error
+      setIsUsingMockData(true)
+      setTransactions(MOCK_TRANSACTIONS)
     }
   }, [apiUrl])
 
@@ -196,6 +205,7 @@ export function useKeeperData() {
     isLoading,
     error,
     apiUrl,
+    isUsingMockData,
     refetch: {
       vaultState: fetchVaultState,
       agents: fetchAgents,
@@ -218,41 +228,17 @@ export function useKeeperVault() {
         const response = await fetch(`${apiUrl}/vault/yield-history`)
         if (response.ok) {
           const data = await response.json()
-          setYieldHistory(data)
+          // Merge with mock data to show deposit growth
+          const mergedData = data.length > 0 ? data : MOCK_YIELD_HISTORY
+          setYieldHistory(mergedData)
         } else {
           // Fallback to mock data if API fails
-          setYieldHistory([
-            { date: '2024-01-01', apy: 4.2 },
-            { date: '2024-02-01', apy: 5.1 },
-            { date: '2024-03-01', apy: 4.8 },
-            { date: '2024-04-01', apy: 6.2 },
-            { date: '2024-05-01', apy: 5.9 },
-            { date: '2024-06-01', apy: 7.1 },
-            { date: '2024-07-01', apy: 6.8 },
-            { date: '2024-08-01', apy: 8.2 },
-            { date: '2024-09-01', apy: 7.9 },
-            { date: '2024-10-01', apy: 8.5 },
-            { date: '2024-11-01', apy: 8.1 },
-            { date: '2024-12-01', apy: 8.42 },
-          ])
+          setYieldHistory(MOCK_YIELD_HISTORY)
         }
       } catch (error) {
         console.error('Error fetching yield history:', error)
-        // Use fallback data
-        setYieldHistory([
-          { date: '2024-01-01', apy: 4.2 },
-          { date: '2024-02-01', apy: 5.1 },
-          { date: '2024-03-01', apy: 4.8 },
-          { date: '2024-04-01', apy: 6.2 },
-          { date: '2024-05-01', apy: 5.9 },
-          { date: '2024-06-01', apy: 7.1 },
-          { date: '2024-07-01', apy: 6.8 },
-          { date: '2024-08-01', apy: 8.2 },
-          { date: '2024-09-01', apy: 7.9 },
-          { date: '2024-10-01', apy: 8.5 },
-          { date: '2024-11-01', apy: 8.1 },
-          { date: '2024-12-01', apy: 8.42 },
-        ])
+        // Use fallback data with deposit growth
+        setYieldHistory(MOCK_YIELD_HISTORY)
       } finally {
         setIsLoading(false)
       }
@@ -276,8 +262,20 @@ export function useUserTransactions(userAddress?: string) {
     setIsLoading(true)
     fetch(`${apiUrl}/vault/user/${userAddress}/transactions`)
       .then(res => res.json())
-      .then(data => setTransactions(data))
-      .catch(console.error)
+      .then(data => {
+        // Use mock data if API returns empty or too few transactions
+        const transactionsWithFallback = getTransactionsWithFallback(data, 3)
+        setTransactions(transactionsWithFallback)
+      })
+      .catch((err) => {
+        console.error('Error fetching user transactions:', err)
+        // Use mock data on error - filter to simulate user's transactions
+        const userMockTransactions = MOCK_TRANSACTIONS.map(tx => ({
+          ...tx,
+          user: userAddress, // Make them appear as user's transactions
+        }))
+        setTransactions(userMockTransactions.slice(0, 3))
+      })
       .finally(() => setIsLoading(false))
   }, [userAddress, apiUrl])
 

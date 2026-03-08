@@ -1,6 +1,9 @@
 'use client'
 
 import { useKeeperData } from '@/hooks/useKeeper'
+import { motion } from 'framer-motion'
+import { Loader2 } from 'lucide-react'
+import { DataSourceBadge } from '@/components/ui/LoadingState'
 
 export function AgentDonut() {
   const { vaultState, isLoading } = useKeeperData()
@@ -47,8 +50,18 @@ export function AgentDonut() {
   
   if (isLoading) {
     return (
-      <div className="card p-6 animate-pulse">
-        <div className="h-48 bg-surface rounded-xl" />
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          >
+            <Loader2 className="w-5 h-5 text-accent" />
+          </motion.div>
+          <span className="text-text-secondary text-sm">Loading allocation data...</span>
+          <DataSourceBadge source="backend" isLoading />
+        </div>
+        <div className="animate-pulse h-48 bg-surface rounded-xl" />
       </div>
     )
   }

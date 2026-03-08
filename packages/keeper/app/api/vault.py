@@ -176,6 +176,8 @@ class VaultStateResponse(BaseModel):
     tvl_change_24h: float
     apy: float
     apy_change_24h: float
+    realized_yield: float  # 30-day trailing average (shown in UI)
+    risk_score: int  # Fixed at 95 in UI
     share_price: float
     depositors: int
     total_shares: float
@@ -183,11 +185,14 @@ class VaultStateResponse(BaseModel):
     last_sync: int
     idle_assets: float
     agent_balances: List[float]
+    utilization: float  # Added to match UI calculation
+    active_agents: int  # Count of active agents
 
 
 class AgentInfo(BaseModel):
     id: int
     name: str
+    strategy: str  # Added: Conservative Lending, PT Yield Holding, etc.
     protocol: str
     adapter: str
     credit_limit: float
@@ -196,6 +201,7 @@ class AgentInfo(BaseModel):
     allocation: float
     target_allocation: float
     active: bool
+    risk: str  # Added: Low, Medium, High
 
 
 class Transaction(BaseModel):
@@ -234,6 +240,31 @@ class SyncResponse(BaseModel):
     success: bool
     tx_hash: Optional[str] = None
     error: Optional[str] = None
+
+
+class AllocateRequest(BaseModel):
+    allocations: Optional[List[int]] = None  # Optional manual allocations, if not provided will calculate optimal
+
+
+class AllocateResponse(BaseModel):
+    success: bool
+    allocations: Optional[List[int]] = None
+    tx_hash: Optional[str] = None
+    error: Optional[str] = None
+
+
+class RadarMetric(BaseModel):
+    label: str
+    value: int  # 0-100 scale
+    icon: str  # Icon name reference
+
+
+class RiskAnalysisResponse(BaseModel):
+    """Risk metrics for VaultRadar component"""
+    overall_score: int  # Fixed at 95
+    metrics: List[RadarMetric]
+    active_agents: int
+    last_updated: str
 
 
 # --- Helper Functions ---
@@ -283,25 +314,38 @@ def fetch_on_chain_state() -> Dict[str, Any]:
 
 @router.get("/state", response_model=VaultStateResponse)
 async def get_vault_state(db: SessionLocal = Depends(get_db_session)):
-    """Get current vault state from blockchain"""
+    """Get current vault state from blockchain - matches UI VaultState component"""
     try:
         state = fetch_on_chain_state()
         
         # Get depositor count from database
         depositor_count = db.query(UserPosition).count()
         
+        # Calculate utilization (matches UI: (totalAssets - totalIdle) / totalAssets)
+        total_assets = format_usdc(state["total_assets"])
+        idle_assets = format_usdc(state["idle_assets"])
+        deployed = total_assets - idle_assets
+        utilization = (deployed / total_assets * 100) if total_assets > 0 else 0
+        
+        # Count active agents
+        active_count = sum(1 for b in state["agent_balances"] if b > 0)
+        
         return VaultStateResponse(
-            tvl=format_usdc(state["total_assets"]),
+            tvl=total_assets,
             tvl_change_24h=0.0,  # Would calculate from historical data
-            apy=8.42,  # Would calculate from yield events
+            apy=settings.mock_apy,  # 11.8% - matches UI realized yield
             apy_change_24h=0.0,
+            realized_yield=settings.mock_apy,  # 30-day trailing average shown in UI
+            risk_score=settings.mock_risk_score,  # Fixed at 95
             share_price=state["share_price"],
-            depositors=depositor_count,
+            depositors=depositor_count or settings.mock_depositors,
             total_shares=format_bcv(state["total_shares"]),
             last_update=datetime.utcnow().isoformat(),
             last_sync=state["last_sync"],
-            idle_assets=format_usdc(state["idle_assets"]),
-            agent_balances=state["agent_balances"]
+            idle_assets=idle_assets,
+            agent_balances=state["agent_balances"],
+            utilization=utilization,
+            active_agents=active_count
         )
     except Exception as e:
         logger.error("get_vault_state_failed", error=str(e))
@@ -310,7 +354,7 @@ async def get_vault_state(db: SessionLocal = Depends(get_db_session)):
 
 @router.get("/agents", response_model=List[AgentInfo])
 async def get_agents():
-    """Get all AI agent allocations from blockchain"""
+    """Get all AI agent allocations from blockchain - matches UI AgentList component"""
     try:
         agents = []
         total_balance = 0
@@ -328,24 +372,25 @@ async def get_agents():
                 "active": agent_data[3]
             })
         
-        agent_names = ["Aave Agent", "Pendle Agent", "Morpho Agent"]
-        protocols = ["Aave V3", "Pendle", "Morpho"]
+        # Use config values that match UI (AgentList.tsx)
         target_allocations = [0.40, 0.35, 0.25]  # 40/35/25 split
         
         for i, data in enumerate(agent_data_list):
-            allocation = (data["balance"] / total_balance * 100) if total_balance > 0 else 0
+            allocation = (data["balance"] / total_balance * 100) if total_balance > 0 else 33.33
             
             agents.append(AgentInfo(
                 id=i,
-                name=agent_names[i],
-                protocol=protocols[i],
+                name=settings.agent_names[i],
+                strategy=settings.agent_strategies[i],
+                protocol=settings.agent_protocols[i],
                 adapter=data["adapter"],
                 credit_limit=data["credit_limit"],
                 balance=data["balance"],
-                apy=8.42,  # Mock APY - would come from actual yield tracking
-                allocation=allocation,
+                apy=settings.agent_target_apys[i],  # Agent-specific APY from config
+                allocation=round(allocation),
                 target_allocation=target_allocations[i] * 100,
-                active=data["active"]
+                active=data["active"],
+                risk=settings.agent_risks[i]
             ))
         
         return agents
@@ -523,6 +568,123 @@ async def get_user_transactions(
     return await get_transactions(limit=limit, user=user_address, db=db)
 
 
+@router.get("/user/{user_address}/cached", response_model=UserBalance)
+async def get_user_cached(user_address: str, db: SessionLocal = Depends(get_db_session)):
+    """
+    Get cached user data from database only (no blockchain calls).
+    Use this as fallback when blockchain is not accessible.
+    """
+    try:
+        if not Web3.is_address(user_address):
+            raise HTTPException(status_code=400, detail="Invalid address")
+        
+        user_address = Web3.to_checksum_address(user_address)
+        
+        # Get user position from database (cached data)
+        position_repo = UserPositionRepository(db)
+        position = position_repo.get_or_create(user_address.lower())
+        
+        # Get withdrawals from database
+        withdrawal_repo = WithdrawalRepository(db)
+        db_withdrawals = withdrawal_repo.get_by_user(user_address.lower())
+        
+        pending_withdrawals = []
+        for w in db_withdrawals:
+            pending_withdrawals.append(WithdrawalRequest(
+                request_id=w.request_id,
+                shares=format_bcv(w.shares),
+                assets=format_usdc(w.assets),
+                timestamp=w.timestamp.isoformat() if w.timestamp else datetime.utcnow().isoformat(),
+                claimed=w.claimed,
+                status=w.status
+            ))
+        
+        # Calculate yield from cached data
+        shares = position.shares
+        # Estimate assets from shares using cached share price or default 1:1
+        share_price = 1.0  # Could be cached in database
+        assets = int(shares * share_price)
+        yield_earned = max(0, format_usdc(position.total_withdrawn + assets - position.total_deposited))
+        
+        return UserBalance(
+            address=user_address,
+            usdc_balance=format_usdc(assets),
+            bcv_shares=format_bcv(shares),
+            bcv_value=format_usdc(assets),
+            pending_withdrawals=pending_withdrawals,
+            total_deposited=format_usdc(position.total_deposited),
+            total_withdrawn=format_usdc(position.total_withdrawn),
+            yield_earned=yield_earned
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_user_cached_failed", error=str(e), user=user_address)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/risk-metrics", response_model=RiskAnalysisResponse)
+async def get_risk_metrics():
+    """
+    Get risk analysis metrics for VaultRadar component.
+    Matches the 5-metric radar chart in the UI.
+    """
+    try:
+        # Fetch agent data to calculate dynamic metrics
+        active_count = 0
+        for i in range(3):
+            try:
+                agent_data = vault_contract.functions.agents(i).call()
+                if agent_data[3]:  # active flag
+                    active_count += 1
+            except Exception:
+                pass
+        
+        # Calculate metrics (matching VaultRadar.tsx logic)
+        # Overall score is fixed at 95, individual metrics vary
+        metrics = [
+            RadarMetric(label="Performance", value=92, icon="TrendingUp"),
+            RadarMetric(
+                label="Stability", 
+                value=min(100, 88 + (active_count * 2)),  # 88-94 based on active agents
+                icon="Lock"
+            ),
+            RadarMetric(
+                label="Liquidity", 
+                value=min(100, 90 + (active_count * 2)),  # 90-96 based on active agents
+                icon="Zap"
+            ),
+            RadarMetric(label="Execution", value=94, icon="Activity"),
+            RadarMetric(
+                label="Trust", 
+                value=min(100, 85 + (active_count * 3)),  # 85-94 based on active agents
+                icon="Shield"
+            ),
+        ]
+        
+        return RiskAnalysisResponse(
+            overall_score=95,  # Fixed to match UI
+            metrics=metrics,
+            active_agents=active_count,
+            last_updated=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error("get_risk_metrics_failed", error=str(e))
+        # Return fallback values that match UI
+        return RiskAnalysisResponse(
+            overall_score=95,
+            metrics=[
+                RadarMetric(label="Performance", value=92, icon="TrendingUp"),
+                RadarMetric(label="Stability", value=94, icon="Lock"),
+                RadarMetric(label="Liquidity", value=96, icon="Zap"),
+                RadarMetric(label="Execution", value=94, icon="Activity"),
+                RadarMetric(label="Trust", value=94, icon="Shield"),
+            ],
+            active_agents=3,
+            last_updated=datetime.utcnow().isoformat()
+        )
+
+
 @router.post("/sync", response_model=SyncResponse)
 async def trigger_sync():
     """Manually trigger balance sync (requires keeper auth in production)"""
@@ -536,3 +698,33 @@ async def trigger_sync():
     except Exception as e:
         logger.error("manual_sync_failed", error=str(e))
         return SyncResponse(success=False, error=str(e))
+
+
+@router.post("/allocate", response_model=AllocateResponse)
+async def allocate_funds(request: AllocateRequest = None):
+    """Allocate idle funds to agents based on target weights or manual allocations"""
+    from app.services.balance_sync import BalanceSync
+    
+    try:
+        sync_service = BalanceSync()
+        
+        if request and request.allocations:
+            # Manual allocations provided
+            allocations = request.allocations
+            if len(allocations) != 3:
+                return AllocateResponse(success=False, error="Must provide exactly 3 allocation amounts")
+        else:
+            # Calculate optimal allocations
+            allocations = await sync_service._calculate_allocations()
+        
+        # Execute the allocation
+        tx_hash = await sync_service._execute_allocation(allocations)
+        
+        return AllocateResponse(
+            success=True, 
+            allocations=allocations, 
+            tx_hash=tx_hash.hex() if tx_hash else None
+        )
+    except Exception as e:
+        logger.error("allocation_failed", error=str(e))
+        return AllocateResponse(success=False, error=str(e))

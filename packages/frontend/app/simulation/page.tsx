@@ -7,7 +7,7 @@ import { formatNumber } from '@/lib/utils'
 
 export default function SimulationPage() {
   const { address } = useAccount()
-  const { sharePrice, tvl, userShares, userAssets, agents, isLoading } = useVaultData()
+  const { sharePrice, tvl, userData, agents, isLoading } = useVaultData()
   const [userAddress, setUserAddress] = useState<string>(address || '0xUser1')
 
   // Update user address when wallet connects
@@ -29,13 +29,13 @@ export default function SimulationPage() {
     assets: agent.balance.toString(),
   })) : []
 
-  const displayUsers = userShares ? [{
-    address: userAddress,
-    shares: userShares.toString(),
-    claimableAssets: userAssets?.toString() || '0',
-    totalDeposited: userAssets?.toString() || '0',
-    totalWithdrawn: '0',
-    netGain: '0',
+  const displayUsers = userData ? [{
+    address: userData.address,
+    shares: userData.bcvShares.toString(),
+    claimableAssets: userData.bcvValue.toString(),
+    totalDeposited: userData.totalDeposited.toString(),
+    totalWithdrawn: userData.totalWithdrawn.toString(),
+    netGain: userData.yieldEarned.toString(),
   }] : []
 
   return (

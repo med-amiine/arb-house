@@ -129,7 +129,7 @@ export function RealTransactions() {
 
               {/* Link */}
               <a 
-                href={`https://sepolia.arbiscan.io/tx/${tx.tx_hash || tx.hash}`}
+                href={`https://sepolia.arbiscan.io/tx/${tx.hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 hover:bg-surface rounded-lg transition-colors"

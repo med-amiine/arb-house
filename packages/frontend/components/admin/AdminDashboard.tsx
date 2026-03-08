@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { formatUnits } from 'viem'
+import { WithdrawalProcessor } from './WithdrawalProcessor'
 import { 
   Shield, 
   Users, 
@@ -13,7 +14,8 @@ import {
   Wallet,
   Loader2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  RefreshCw
 } from 'lucide-react'
 
 const cardVariants = {
@@ -23,7 +25,7 @@ const cardVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -64,7 +66,7 @@ export function AdminDashboard() {
 
   return (
     <motion.div 
-      className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       initial="hidden"
       animate="visible"
       variants={{
@@ -76,22 +78,24 @@ export function AdminDashboard() {
         },
       }}
     >
-      {/* Emergency Controls */}
+      {/* Top Row - Emergency, Keeper, Sync Vault */}
       <motion.div variants={cardVariants}>
         <EmergencyControls paused={paused} />
       </motion.div>
       
-      {/* Keeper Management */}
       <motion.div variants={cardVariants}>
         <KeeperManagement currentKeeper={keeper} />
       </motion.div>
       
-      {/* Agent Management */}
       <motion.div variants={cardVariants}>
+        <SyncVault />
+      </motion.div>
+      
+      {/* Middle Row - Agent Management (spans 2) & Weight Management */}
+      <motion.div variants={cardVariants} className="lg:col-span-2">
         <AgentManagement agents={agents} />
       </motion.div>
       
-      {/* Weight Management - Fixed Layout */}
       <motion.div variants={cardVariants}>
         <WeightManagement 
           currentWeights={targetWeights} 
@@ -99,8 +103,13 @@ export function AdminDashboard() {
         />
       </motion.div>
       
-      {/* Rescue Tokens */}
-      <motion.div variants={cardVariants} className="lg:col-span-2">
+      {/* Bottom Row - Withdrawal Processor (full width) */}
+      <motion.div variants={cardVariants} className="lg:col-span-3">
+        <WithdrawalProcessor />
+      </motion.div>
+      
+      {/* Bottom Row - Rescue Tokens (full width) */}
+      <motion.div variants={cardVariants} className="lg:col-span-3">
         <RescueTokens />
       </motion.div>
     </motion.div>
@@ -181,7 +190,7 @@ function KeeperManagement({ currentKeeper }: { currentKeeper?: string }) {
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'setKeeper',
-      args: [newKeeper],
+      args: [newKeeper as `0x${string}`],
     })
   }
   
@@ -224,7 +233,7 @@ function KeeperManagement({ currentKeeper }: { currentKeeper?: string }) {
 }
 
 // Agent Management
-function AgentManagement({ agents }: { agents?: any[] }) {
+function AgentManagement({ agents }: { agents?: readonly any[] }) {
   const [selectedAgent, setSelectedAgent] = useState(0)
   const [adapter, setAdapter] = useState('')
   const [creditLimit, setCreditLimit] = useState('')
@@ -237,7 +246,7 @@ function AgentManagement({ agents }: { agents?: any[] }) {
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'updateAgent',
-      args: [BigInt(selectedAgent), adapter, BigInt(creditLimit) * BigInt(1e6)],
+      args: [BigInt(selectedAgent), adapter as `0x${string}`, BigInt(creditLimit) * BigInt(1e6)],
     })
   }
   
@@ -314,7 +323,7 @@ function WeightManagement({
   currentWeights, 
   threshold
 }: { 
-  currentWeights?: number[]
+  currentWeights?: readonly number[]
   threshold?: number
 }) {
   const [weights, setWeights] = useState(['', '', ''])
@@ -333,7 +342,7 @@ function WeightManagement({
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'setWeights',
-      args: [w],
+      args: [w as [number, number, number]],
     })
   }
   
@@ -423,6 +432,71 @@ function WeightManagement({
   )
 }
 
+// Sync Vault - New Component
+function SyncVault() {
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [result, setResult] = useState<{ success?: boolean; message?: string } | null>(null)
+  
+  const { writeContract, isPending } = useWriteContract()
+  
+  const handleSync = () => {
+    setIsSyncing(true)
+    setResult(null)
+    
+    writeContract({
+      address: VAULT_ADDRESS,
+      abi: VAULT_ABI,
+      functionName: 'syncBalances',
+      args: [[BigInt(0), BigInt(0), BigInt(0)]], // Pass current balances or zeros
+    }, {
+      onSuccess: () => {
+        setResult({ success: true, message: 'Sync transaction submitted' })
+        setIsSyncing(false)
+      },
+      onError: (error) => {
+        setResult({ success: false, message: error.message || 'Sync failed' })
+        setIsSyncing(false)
+      }
+    })
+  }
+  
+  return (
+    <div className="card p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+          <RefreshCw className="w-5 h-5 text-accent" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Sync Vault</h3>
+          <p className="text-xs text-text-secondary">Trigger balance synchronization</p>
+        </div>
+      </div>
+      
+      <p className="text-sm text-text-secondary mb-4">
+        Manually trigger a vault sync to update agent balances and refresh the lastSync timestamp. 
+        This keeps deposits enabled (requires sync within 12 hours).
+      </p>
+      
+      <button
+        onClick={handleSync}
+        disabled={isPending || isSyncing}
+        className="w-full py-2 px-4 bg-accent text-white rounded-lg font-medium hover:bg-accent/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+      >
+        {(isPending || isSyncing) ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        {isPending ? 'Submitting...' : isSyncing ? 'Syncing...' : 'Sync Vault'}
+      </button>
+      
+      {result && (
+        <div className={`mt-3 p-2 rounded-lg text-sm ${
+          result.success ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
+        }`}>
+          {result.message}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Rescue Tokens
 function RescueTokens() {
   const [token, setToken] = useState('')
@@ -436,53 +510,60 @@ function RescueTokens() {
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'rescue',
-      args: [token, BigInt(amount)],
+      args: [token as `0x${string}`, BigInt(amount)],
     })
   }
   
   return (
-    <div className="card p-6">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="card p-6 border-warning/20">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
         <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
           <Wallet className="w-5 h-5 text-warning" />
         </div>
         <div>
-          <h3 className="font-semibold">Rescue Tokens</h3>
+          <h3 className="font-semibold text-lg">Rescue Tokens</h3>
           <p className="text-xs text-text-secondary">Recover stuck tokens (excludes vault asset)</p>
         </div>
       </div>
       
+      {/* Warning */}
       <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg mb-4">
         <p className="text-sm text-warning flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />
-          This is for emergency use only. Cannot rescue the vault's underlying asset.
+          Emergency use only. Cannot rescue the vault's underlying asset (USDC).
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <input
-          type="text"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Token Address (0x...)"
-          className="input text-sm md:col-span-2"
-        />
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Amount"
-          className="input text-sm"
-        />
+      {/* Form */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input
+            type="text"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="Token Address (0x...)"
+            className="input text-sm md:col-span-2"
+          />
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Amount"
+            className="input text-sm"
+          />
+        </div>
+        
+        {/* Rescue Button - Clearly under Rescue Tokens section */}
+        <button
+          onClick={handleRescue}
+          disabled={isPending || !token || !amount}
+          className="w-full py-3 px-4 bg-warning text-white rounded-lg font-medium hover:bg-warning/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        >
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+          Rescue Tokens
+        </button>
       </div>
-      <button
-        onClick={handleRescue}
-        disabled={isPending || !token || !amount}
-        className="mt-3 w-full py-2 px-4 bg-warning/10 text-warning border border-warning/30 rounded-lg font-medium hover:bg-warning/20 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-      >
-        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        Rescue Tokens
-      </button>
     </div>
   )
 }

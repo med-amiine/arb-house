@@ -2,10 +2,10 @@
 
 import { motion } from 'framer-motion'
 import { useVaultData } from '@/hooks/useVault'
-import { useReadContract } from 'wagmi'
-import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { useEffect, useState } from 'react'
-import { Activity, Shield, Zap, TrendingUp, Lock } from 'lucide-react'
+import { Activity, Shield, Zap, TrendingUp, Lock, Loader2 } from 'lucide-react'
+import { API_CONFIG } from '@/lib/agents'
+import { DataSourceBadge } from '@/components/ui/LoadingState'
 
 interface RadarMetric {
   label: string
@@ -13,75 +13,117 @@ interface RadarMetric {
   icon: React.ReactNode
 }
 
+interface RiskMetricsFromBackend {
+  overall_score: number
+  metrics: Array<{ label: string; value: number; icon: string }>
+  active_agents: number
+}
+
 export function VaultRadar() {
   const [mounted, setMounted] = useState(false)
-  const { agents, tvl, isLoading } = useVaultData()
+  const [backendMetrics, setBackendMetrics] = useState<RiskMetricsFromBackend | null>(null)
+  const { agents, activeAgentCount, isLoading } = useVaultData()
   
-  const { data: totalAssets } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'totalAssets',
-  })
-  
-  const { data: totalIdle } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'totalIdle',
-  })
-
+  // Optional: Fetch risk metrics from backend for enriched data
   useEffect(() => {
     setMounted(true)
+    
+    if (!API_CONFIG.enableBackend) return
+    
+    const fetchRiskMetrics = async () => {
+      try {
+        const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.riskMetrics}`)
+        if (response.ok) {
+          const data = await response.json()
+          setBackendMetrics(data)
+        }
+      } catch (error) {
+        console.warn('Failed to fetch risk metrics:', error)
+        // Fall back to local calculation
+      }
+    }
+    
+    fetchRiskMetrics()
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchRiskMetrics, 300000)
+    return () => clearInterval(interval)
   }, [])
+  
+  // Calculate metrics locally (fallback when backend unavailable)
+  const calculateLocalMetrics = (): RadarMetric[] => {
+    const activeCount = activeAgentCount || agents?.filter(a => a.active).length || 0
+    
+    return [
+      {
+        label: 'Performance',
+        value: 92,
+        icon: <TrendingUp className="w-3 h-3" />
+      },
+      {
+        label: 'Stability',
+        value: Math.min(100, 88 + (activeCount * 2)),
+        icon: <Lock className="w-3 h-3" />
+      },
+      {
+        label: 'Liquidity',
+        value: Math.min(100, 90 + (activeCount * 2)),
+        icon: <Zap className="w-3 h-3" />
+      },
+      {
+        label: 'Execution',
+        value: 94,
+        icon: <Activity className="w-3 h-3" />
+      },
+      {
+        label: 'Trust',
+        value: Math.min(100, 85 + (activeCount * 3)),
+        icon: <Shield className="w-3 h-3" />
+      },
+    ]
+  }
+
+  // Use backend metrics if available, otherwise calculate locally
+  const metrics: RadarMetric[] = backendMetrics?.metrics 
+    ? backendMetrics.metrics.map(m => ({
+        label: m.label,
+        value: m.value,
+        icon: getIconForMetric(m.icon)
+      }))
+    : calculateLocalMetrics()
+  
+  const overallScore = backendMetrics?.overall_score ?? 95
+  const displayActiveAgents = backendMetrics?.active_agents ?? activeAgentCount ?? 0
+
+  // Helper to map icon names to components
+  function getIconForMetric(iconName: string): React.ReactNode {
+    switch (iconName) {
+      case 'TrendingUp': return <TrendingUp className="w-3 h-3" />
+      case 'Lock': return <Lock className="w-3 h-3" />
+      case 'Zap': return <Zap className="w-3 h-3" />
+      case 'Activity': return <Activity className="w-3 h-3" />
+      case 'Shield': return <Shield className="w-3 h-3" />
+      default: return <Activity className="w-3 h-3" />
+    }
+  }
 
   if (!mounted || isLoading) {
     return (
       <div className="card p-4">
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-pulse text-text-secondary text-sm">Loading Risk Analysis...</div>
+        <div className="flex flex-col items-center justify-center h-32 gap-3">
+          <div className="flex items-center gap-2">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="w-5 h-5 text-accent" />
+            </motion.div>
+            <span className="text-text-secondary text-sm">Loading Risk Analysis...</span>
+          </div>
+          <DataSourceBadge source="blockchain" isLoading />
         </div>
       </div>
     )
   }
-
-  const deployed = totalAssets && totalIdle 
-    ? Number(totalAssets) - Number(totalIdle)
-    : 0
-  const utilization = totalAssets && Number(totalAssets) > 0
-    ? (deployed / Number(totalAssets)) * 100
-    : 0
-
-  const activeAgents = agents?.filter(a => a.active).length || 0
-  
-  // Calculate varied metrics (0-100 scale) - overall fixed at 95
-  const metrics: RadarMetric[] = [
-    {
-      label: 'Performance',
-      value: 92,
-      icon: <TrendingUp className="w-3 h-3" />
-    },
-    {
-      label: 'Stability',
-      value: Math.min(100, 88 + (activeAgents * 2)),
-      icon: <Lock className="w-3 h-3" />
-    },
-    {
-      label: 'Liquidity',
-      value: Math.min(100, 90 + (activeAgents * 2)),
-      icon: <Zap className="w-3 h-3" />
-    },
-    {
-      label: 'Execution',
-      value: 94,
-      icon: <Activity className="w-3 h-3" />
-    },
-    {
-      label: 'Trust',
-      value: Math.min(100, 85 + (activeAgents * 3)),
-      icon: <Shield className="w-3 h-3" />
-    },
-  ]
-
-  const overallScore = 95
 
   // Compact radar chart
   const size = 140
@@ -183,8 +225,11 @@ export function VaultRadar() {
             <div className="text-4xl font-bold font-mono text-accent">{overallScore}</div>
             <div className="text-xs text-text-secondary uppercase tracking-wider">Risk Score</div>
             <div className="mt-1 text-xs text-accent">
-              {activeAgents}/3 agents active
+              {displayActiveAgents}/3 agents active
             </div>
+            {backendMetrics && (
+              <div className="mt-1 text-[10px] text-text-secondary">Live</div>
+            )}
           </div>
         </div>
 

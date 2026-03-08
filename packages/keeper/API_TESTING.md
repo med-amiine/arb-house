@@ -75,6 +75,20 @@ The keeper is configured to connect to:
 - **Vault**: 0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E
 - **RPC**: https://arbitrum-sepolia.drpc.org
 
+## Test Allocation Endpoint
+
+```bash
+# Test automatic allocation (calculates optimal based on target weights)
+curl -X POST http://localhost:8000/vault/allocate \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Test manual allocation
+curl -X POST http://localhost:8000/vault/allocate \
+  -H "Content-Type: application/json" \
+  -d '{"allocations":[500000,500000,1000000]}'
+```
+
 ## Next Steps
 
 1. Open port 80 in security group OR use SSH tunnel

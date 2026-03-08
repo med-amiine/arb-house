@@ -80,7 +80,7 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
     error InsufficientShares(uint256 requested, uint256 available);
     error AlreadyClaimed(uint256 requestId);
     error NoSuchRequest(uint256 requestId);
-    error ExceedsMaxAllocation(uint256 requested, uint256 max);
+    error InsufficientIdleFunds(uint256 requested, uint256 available);
 
     // ============ Constructor ============
     
@@ -105,8 +105,8 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
             emit AgentAdded(i, agentAdapters_[i], creditLimits_[i]);
         }
         
-        // Default equal weights
-        targetWeights = [3333, 3333, 3334];
+        // Default weights: 30/30/40
+        targetWeights = [3000, 3000, 4000];
         
         // Initialize lastSync to allow deposits immediately after deployment
         lastSync = block.timestamp;
@@ -300,7 +300,7 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
     
     /// @notice Sync agent balances from off-chain keeper
     /// @param balances Current balances for each agent
-    function syncBalances(uint256[3] calldata balances) external {
+    function syncBalances(uint256[3] calldata balances) external onlyKeeper {
         for (uint256 i = 0; i < 3; i++) {
             if (balances[i] > agents[i].creditLimit) {
                 revert ExceedsCreditLimit(i, balances[i], agents[i].creditLimit);
@@ -309,6 +309,56 @@ contract BondCreditVault is ERC4626, Ownable, Pausable, ReentrancyGuard, IVaultE
         }
         lastSync = block.timestamp;
         emit BalancesSynced(balances, block.timestamp);
+    }
+    
+    /// @notice Allocate idle funds to agents based on target weights
+    /// @param allocations Amounts to allocate to each agent (must not exceed credit limits)
+    function allocateToAgents(uint256[3] calldata allocations) external onlyKeeper nonReentrant {
+        uint256 idleFunds = IERC20(asset()).balanceOf(address(this));
+        
+        for (uint256 i = 0; i < 3; i++) {
+            if (!agents[i].active) continue;
+            if (allocations[i] > 0) {
+                if (agents[i].currentBalance + allocations[i] > agents[i].creditLimit) {
+                    revert ExceedsCreditLimit(i, agents[i].currentBalance + allocations[i], agents[i].creditLimit);
+                }
+                if (allocations[i] > idleFunds) {
+                    revert InsufficientIdleFunds(allocations[i], idleFunds);
+                }
+                
+                // Transfer to agent adapter
+                IERC20(asset()).safeTransfer(agents[i].adapter, allocations[i]);
+                agents[i].currentBalance += allocations[i];
+                idleFunds -= allocations[i];
+                
+                emit FundsAllocated(i, allocations[i], agents[i].currentBalance);
+            }
+        }
+    }
+    
+    /// @notice Calculate optimal allocations based on target weights and available idle funds
+    /// @return allocations Array of amounts to allocate to each agent
+    function calculateAllocations() external view returns (uint256[3] memory allocations) {
+        uint256 idleFunds = IERC20(asset()).balanceOf(address(this));
+        if (idleFunds == 0) return allocations;
+        
+        uint256 totalDeployed = agents[0].currentBalance + agents[1].currentBalance + agents[2].currentBalance;
+        uint256 totalTarget = totalDeployed + idleFunds;
+        
+        for (uint256 i = 0; i < 3; i++) {
+            if (!agents[i].active) continue;
+            
+            // Calculate target balance for this agent
+            uint256 targetBalance = (totalTarget * targetWeights[i]) / WEIGHT_PRECISION;
+            
+            if (targetBalance > agents[i].currentBalance) {
+                uint256 needed = targetBalance - agents[i].currentBalance;
+                // Don't allocate more than available or credit limit
+                uint256 maxAlloc = Math.min(needed, agents[i].creditLimit - agents[i].currentBalance);
+                allocations[i] = Math.min(maxAlloc, idleFunds);
+                idleFunds -= allocations[i];
+            }
+        }
     }
     
     /// @notice Update target weights for rebalancing

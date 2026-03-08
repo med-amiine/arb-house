@@ -23,7 +23,7 @@ const cardVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -181,7 +181,7 @@ function KeeperManagement({ currentKeeper }: { currentKeeper?: string }) {
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'setKeeper',
-      args: [newKeeper],
+      args: [newKeeper as `0x${string}`],
     })
   }
   
@@ -224,7 +224,7 @@ function KeeperManagement({ currentKeeper }: { currentKeeper?: string }) {
 }
 
 // Agent Management
-function AgentManagement({ agents }: { agents?: any[] }) {
+function AgentManagement({ agents }: { agents?: readonly any[] }) {
   const [selectedAgent, setSelectedAgent] = useState(0)
   const [adapter, setAdapter] = useState('')
   const [creditLimit, setCreditLimit] = useState('')
@@ -237,7 +237,7 @@ function AgentManagement({ agents }: { agents?: any[] }) {
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'updateAgent',
-      args: [BigInt(selectedAgent), adapter, BigInt(creditLimit) * BigInt(1e6)],
+      args: [BigInt(selectedAgent), adapter as `0x${string}`, BigInt(creditLimit) * BigInt(1e6)],
     })
   }
   
@@ -314,7 +314,7 @@ function WeightManagement({
   currentWeights, 
   threshold 
 }: { 
-  currentWeights?: number[]
+  currentWeights?: readonly number[]
   threshold?: number
 }) {
   const [weights, setWeights] = useState(['', '', ''])
@@ -333,7 +333,7 @@ function WeightManagement({
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'setWeights',
-      args: [w],
+      args: [w as [number, number, number]],
     })
   }
   
@@ -434,7 +434,7 @@ function RescueTokens() {
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'rescue',
-      args: [token, BigInt(amount)],
+      args: [token as `0x${string}`, BigInt(amount)],
     })
   }
   

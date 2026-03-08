@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Withdraw | Bond Credit Vault',
+  title: 'Withdraw | bond.credit',
 }
 
 export default function WithdrawPage() {

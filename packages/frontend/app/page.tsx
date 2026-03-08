@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles, Shield, Zap, TrendingUp, Bot, Wallet } from 'lucide-react'
+import { BondCreditLogo } from '@/components/icons/BondCreditLogo'
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -11,7 +12,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -33,7 +34,7 @@ const cardVariants = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -270,12 +271,7 @@ export default function LandingPage() {
       <footer className="py-12 border-t border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-lg">BCV</span>
-            </div>
+            <BondCreditLogo className="h-5 w-auto text-white" />
             <div className="flex items-center gap-6 text-sm text-text-secondary">
               <Link href="/dashboard" className="hover:text-accent transition-colors">
                 Dashboard
@@ -291,7 +287,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <p className="text-sm text-text-muted">
-              © 2025 Bond Credit Vault
+              © 2025 bond.credit
             </p>
           </div>
         </div>

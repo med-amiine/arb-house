@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { ArrowRight, Loader2, RefreshCw, AlertTriangle, Shield, Zap } from 'lucide-react'
+import { ArrowRight, Loader2, AlertTriangle, Shield, Zap, CheckCircle2 } from 'lucide-react'
 import { VAULT_ADDRESS, VAULT_ABI, USDC_ADDRESS, USDC_ABI } from '@/lib/contracts'
+import { useVaultData } from '@/hooks/useVault'
 import { formatNumber } from '@/lib/utils'
 
 const USDC_DECIMALS = 6
@@ -30,31 +31,7 @@ const TRANCHES = {
   },
 }
 
-// Vault ABI with syncBalances function
-const VAULT_FULL_ABI = [
-  ...VAULT_ABI,
-  {
-    inputs: [{ name: "balances", type: "uint256[3]" }],
-    name: "syncBalances",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    inputs: [],
-    name: "lastSync",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    inputs: [],
-    name: "keeper",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function"
-  },
-] as const
+
 
 // Validate contract addresses
 const validateAddress = (addr: string, name: string): `0x${string}` => {
@@ -67,12 +44,20 @@ const validateAddress = (addr: string, name: string): `0x${string}` => {
   return addr as `0x${string}`
 }
 
-export function DepositForm() {
+interface DepositFormProps {
+  onSuccess?: (txHash: string, deposited: string, shares: string, sharePrice: string) => void
+  onApprovalSuccess?: (txHash: string, amount: string) => void
+}
+
+export function DepositForm({ onSuccess, onApprovalSuccess }: DepositFormProps) {
   const { address, isConnected } = useAccount()
+  const { refresh: refreshVault } = useVaultData()
   const [amount, setAmount] = useState('')
   const [tranche, setTranche] = useState<'senior' | 'junior'>('senior')
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle')
+  
+  // Track which approval hash we've already notified for to prevent duplicates
+  const [lastNotifiedApprovalHash, setLastNotifiedApprovalHash] = useState<string | null>(null)
   
   // Validate addresses on mount
   useEffect(() => {
@@ -85,38 +70,58 @@ export function DepositForm() {
     }
   }, [])
   
-  // Read USDC balance
+  // Read USDC balance - cached, no auto-refetch
   const { data: usdcBalance, error: balanceError, refetch: refetchBalance } = useReadContract({
     address: USDC_ADDRESS,
     abi: USDC_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { 
+      enabled: !!address,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
   })
   
-  // Read USDC allowance
+  // Read USDC allowance - cached, no auto-refetch
   const { data: allowance, refetch: refetchAllowance, error: allowanceError } = useReadContract({
     address: USDC_ADDRESS,
     abi: USDC_ABI,
     functionName: 'allowance',
     args: address ? [address, VAULT_ADDRESS] : undefined,
-    query: { enabled: !!address && !!VAULT_ADDRESS },
+    query: { 
+      enabled: !!address && !!VAULT_ADDRESS,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
   })
   
-  // Read last sync time to check if vault is stale
+  // Read last sync time to check if vault is stale - cached
   const { data: lastSync } = useReadContract({
     address: VAULT_ADDRESS,
-    abi: VAULT_FULL_ABI,
+    abi: VAULT_ABI,
     functionName: 'lastSync',
+    query: {
+      staleTime: 5 * 60 * 1000,
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
   })
   
-  // Read preview deposit
+  // Read preview deposit - not cached as it depends on input
   const { data: previewShares, error: previewError } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: 'previewDeposit',
     args: amount ? [parseUnits(amount, USDC_DECIMALS)] : undefined,
-    query: { enabled: !!amount && !!VAULT_ADDRESS },
+    query: { 
+      enabled: !!amount && !!VAULT_ADDRESS,
+      staleTime: 30 * 1000, // 30 seconds for preview
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
   })
   
   // Approve USDC
@@ -137,11 +142,42 @@ export function DepositForm() {
   useEffect(() => {
     if (isDepositSuccess && depositHash) {
       console.log('Deposit confirmed:', depositHash)
+      const depositAmount = parseUnits(amount, USDC_DECIMALS)
+      const shares = previewShares || depositAmount
+      const sharePrice = shares > BigInt(0) ? Number(depositAmount * BigInt(1000000) / shares) : 1000000
+      
+      // Match Demo.s.sol logging format
+      console.log('=== DEPOSIT ===')
+      console.log('Deposited:', amount, 'USDC')
+      console.log('Received shares:', formatNumber(Number(formatUnits(shares, USDC_DECIMALS))), 'BCV')
+      console.log('Share price:', sharePrice, 'USDC per BCV (scaled)')
+      
+      onSuccess?.(depositHash, amount, formatNumber(Number(formatUnits(shares, USDC_DECIMALS))), sharePrice.toString())
       setAmount('')
       refetchAllowance()
       refetchBalance()
+      
+      // Refresh all vault data and user balances
+      setTimeout(async () => {
+        await refreshVault()
+        await refetchBalance()
+        await refetchAllowance()
+      }, 2000)
     }
-  }, [isDepositSuccess, depositHash, refetchAllowance, refetchBalance])
+  }, [isDepositSuccess, depositHash, refetchAllowance, refetchBalance, onSuccess, amount, previewShares])
+  
+  // Handle successful approval - separate effect to track hash
+  useEffect(() => {
+    if (isApproveSuccess && approveHash && approveHash !== lastNotifiedApprovalHash) {
+      console.log('=== USDC APPROVAL ===')
+      console.log('Transaction hash:', approveHash)
+      console.log('Approved amount:', amount, 'USDC')
+      
+      setLastNotifiedApprovalHash(approveHash)
+      onApprovalSuccess?.(approveHash, amount)
+      refetchAllowance()
+    }
+  }, [isApproveSuccess, approveHash, lastNotifiedApprovalHash, amount, onApprovalSuccess, refetchAllowance])
   
   const parsedAmount = amount ? parseUnits(amount, USDC_DECIMALS) : BigInt(0)
   const needsApproval = allowance !== undefined && parsedAmount > (allowance as bigint)
@@ -421,12 +457,7 @@ export function DepositForm() {
         )}
       </div>
       
-      {/* Success Messages */}
-      {isDepositSuccess && (
-        <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
-          <p className="text-accent text-sm">Deposit completed successfully!</p>
-        </div>
-      )}
+      {/* Success messages are shown outside the modal as notifications */}
     </div>
   )
 }

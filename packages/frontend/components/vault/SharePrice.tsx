@@ -1,15 +1,21 @@
 'use client'
 
 import { useVaultData } from '@/hooks/useVault'
+import { LoadingState, LoadingCard } from '@/components/ui/LoadingState'
 
 export function SharePrice() {
   const { sharePrice, sharePriceChange, isLoading } = useVaultData()
   
   if (isLoading) {
     return (
-      <div className="card p-8 h-full flex items-center justify-center">
-        <div className="animate-pulse h-16 w-48 bg-surface-hover rounded"></div>
-      </div>
+      <LoadingCard className="p-8 h-full">
+        <LoadingState 
+          size="sm" 
+          text="Loading share price..." 
+          showSource 
+          source="blockchain" 
+        />
+      </LoadingCard>
     )
   }
   

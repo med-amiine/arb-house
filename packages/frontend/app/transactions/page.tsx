@@ -5,8 +5,9 @@ import { motion } from 'framer-motion'
 import { useKeeperData, useUserTransactions } from '@/hooks/useKeeper'
 import { useAccount } from 'wagmi'
 import { formatNumber } from '@/lib/utils'
-import { ArrowDownLeft, ArrowUpRight, Clock, ExternalLink } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Clock, ExternalLink, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { DemoDataBadge } from '@/components/ui/LoadingState'
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -15,7 +16,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.35,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -37,14 +38,14 @@ const rowVariants = {
     x: 0,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
 
 export default function TransactionsPage() {
   const { address } = useAccount()
-  const { transactions: allTransactions, isLoading: allLoading } = useKeeperData()
+  const { transactions: allTransactions, isLoading: allLoading, isUsingMockData } = useKeeperData()
   const { transactions: userTransactions, isLoading: userLoading } = useUserTransactions(address)
   
   const [showAll, setShowAll] = useState(true)
@@ -114,28 +115,34 @@ export default function TransactionsPage() {
         </motion.div>
 
         {/* Filter Tabs */}
-        <motion.div variants={itemVariants} className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => setShowAll(true)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              showAll 
-                ? 'bg-accent text-white' 
-                : 'bg-surface text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            All Transactions
-          </button>
-          {address && (
+        <motion.div variants={itemVariants} className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
             <button
-              onClick={() => setShowAll(false)}
+              onClick={() => setShowAll(true)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !showAll 
+                showAll 
                   ? 'bg-accent text-white' 
                   : 'bg-surface text-text-secondary hover:text-text-primary'
               }`}
             >
-              My Transactions
+              All Transactions
             </button>
+            {address && (
+              <button
+                onClick={() => setShowAll(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  !showAll 
+                    ? 'bg-accent text-white' 
+                    : 'bg-surface text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                My Transactions
+              </button>
+            )}
+          </div>
+          
+          {isUsingMockData && showAll && (
+            <DemoDataBadge count={transactions.length} />
           )}
         </motion.div>
 

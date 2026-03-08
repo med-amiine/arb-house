@@ -22,6 +22,10 @@ class AgentStatus:
     credit_limit: int
     utilization_bps: int
     healthy: bool
+    name: str = ""           # From config: Aave Lending Agent, etc.
+    strategy: str = ""       # From config: Conservative Lending, etc.
+    protocol: str = ""       # From config: Aave V3, Pendle, Morpho
+    risk_level: str = ""     # From config: Low, Medium, High
 
 class GizaAgentClient:
     """Client for interacting with Giza AI agents"""
@@ -49,7 +53,7 @@ class GizaAgentClient:
         logger.info("giza_client_initialized")
     
     async def get_agent_balance(self, agent_index: int) -> int:
-        """Get current balance/TVL for an agent"""
+        """Get current balance/TVL for an agent - synced with UI agent allocation targets"""
         agent_id = self.agent_ids[agent_index]
         if not agent_id:
             logger.warning("agent_id_not_set", index=agent_index)
@@ -57,22 +61,27 @@ class GizaAgentClient:
             
         try:
             # TODO: Replace with actual Giza SDK call
-            # For now, simulate realistic agent balances
-            # In production, this would query the Giza API for real TVL
+            # For now, simulate realistic agent balances that match UI allocations
+            # Target allocations: Aave 40%, Pendle 35%, Morpho 25%
+            # Based on mock_tvl of $1.25M
             
-            # Simulate different balance levels for different agents
-            base_balances = [450000 * 10**6, 380000 * 10**6, 420000 * 10**6]  # USDC decimals
-            balance = base_balances[agent_index]
+            target_allocations = [0.40, 0.35, 0.25]  # Matches UI 40/35/25 split
+            base_tvl = settings.mock_tvl  # $1.25M from config
             
-            # Add some randomness to simulate real market conditions
+            # Calculate base balance based on target allocation
+            base_balance = base_tvl * target_allocations[agent_index]
+            
+            # Add some randomness to simulate real market conditions (±3% for stability)
             import random
-            variation = random.uniform(-0.05, 0.05)  # ±5% variation
-            balance = int(balance * (1 + variation))
+            variation = random.uniform(-0.03, 0.03)  # ±3% variation (tighter than before)
+            balance = int(base_balance * (1 + variation) * 10**6)  # Convert to USDC decimals
             
             logger.debug("fetched_agent_balance", 
-                        agent_index=agent_index, 
+                        agent_index=agent_index,
+                        agent_name=settings.agent_names[agent_index],
                         agent_id=agent_id,
-                        balance=balance)
+                        target_allocation=target_allocations[agent_index],
+                        balance_usd=balance / 10**6)
             return balance
             
         except Exception as e:
@@ -136,11 +145,13 @@ class GizaAgentClient:
             raise
     
     async def get_agent_status(self, agent_index: int) -> AgentStatus:
-        """Get comprehensive agent health status"""
+        """Get comprehensive agent health status - synced with UI"""
         balance = await self.get_agent_balance(agent_index)
         
-        # TODO: Get credit limit from contract or config
-        credit_limit = 1_000_000 * 10**6  # 1M USDC default
+        # Credit limit based on target allocation of mock TVL
+        # Gives each agent headroom above their target
+        target_allocations = [0.40, 0.35, 0.25]
+        credit_limit = int(settings.mock_tvl * target_allocations[agent_index] * 1.5 * 10**6)  # 50% headroom
         
         utilization = (balance * 10000) // credit_limit if credit_limit > 0 else 0
         
@@ -149,7 +160,11 @@ class GizaAgentClient:
             balance=balance,
             credit_limit=credit_limit,
             utilization_bps=utilization,
-            healthy=utilization < 9000  # < 90% utilized
+            healthy=utilization < 9000,  # < 90% utilized
+            name=settings.agent_names[agent_index],
+            strategy=settings.agent_strategies[agent_index],
+            protocol=settings.agent_protocols[agent_index],
+            risk_level=settings.agent_risks[agent_index]
         )
 
 # Global client instance

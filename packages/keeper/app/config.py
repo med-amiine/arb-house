@@ -40,11 +40,20 @@ class Settings(BaseSettings):
     rebalance_threshold_bps: int = Field(default=500, alias="REBALANCE_THRESHOLD_BPS")
     max_sync_stale_minutes: int = Field(default=720, alias="MAX_SYNC_STALE_MINUTES")
     
-    # Mock data configuration
+    # Mock data configuration - Synced with UI
+    # UI shows: TVL, Utilization, Risk Score (95), Realized Yield (11.8%), Active Agents
     mock_tvl: float = Field(default=1250000.0, alias="MOCK_TVL")  # $1.25M TVL
-    mock_apy: float = Field(default=8.42, alias="MOCK_APY")  # 8.42% APY
+    mock_apy: float = Field(default=11.8, alias="MOCK_APY")  # 11.8% Realized Yield (matches UI)
     mock_share_price: float = Field(default=1.085, alias="MOCK_SHARE_PRICE")  # $1.085 per share
     mock_depositors: int = Field(default=1234, alias="MOCK_DEPOSITORS")
+    mock_risk_score: int = Field(default=95, alias="MOCK_RISK_SCORE")  # Fixed risk score shown in UI
+    
+    # Agent configuration - matches AgentList.tsx
+    agent_names: list = Field(default=["Claude Alpha", "Codex Core", "Kimi Nexus"])
+    agent_strategies: list = Field(default=["Conservative Lending", "PT Yield Holding", "Optimized Lending"])
+    agent_protocols: list = Field(default=["Aave V3", "Pendle", "Morpho"])
+    agent_risks: list = Field(default=["Low", "Medium", "Medium"])
+    agent_target_apys: list = Field(default=[6.2, 9.8, 7.5])  # Backend base APYs
     
     # Monitoring
     sentry_dsn: Optional[str] = Field(default=None, alias="SENTRY_DSN")

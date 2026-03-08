@@ -1,5 +1,5 @@
 // Contract Addresses - Arbitrum Sepolia Testnet
-export const VAULT_ADDRESS = '0xEAEa45b8078f9fcA46DFb42b16016c8C234F7ff3' as `0x${string}`
+export const VAULT_ADDRESS = '0x5fced2ffc59401d5a3D2439C7b997E7bcCF85Ff8' as `0x${string}`
 export const USDC_ADDRESS = '0x3AD4869afcC42f5Ad199914d398b3172c576f413' as `0x${string}`
 
 // RPC URLs
@@ -62,6 +62,27 @@ export const VAULT_ABI = [
         { name: 'claimed', type: 'bool' },
       ]
     }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getWithdrawalQueueLength',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'lastSync',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalIdle',
+    outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -178,6 +199,13 @@ export const VAULT_ABI = [
     type: 'function',
   },
   {
+    inputs: [{ name: 'balances', type: 'uint256[3]' }],
+    name: 'syncBalances',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [
       { name: 'token', type: 'address' },
       { name: 'amount', type: 'uint256' },
@@ -192,6 +220,17 @@ export const VAULT_ABI = [
     name: 'owner',
     outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',
+    type: 'function',
+  },
+  // Keeper functions
+  {
+    inputs: [
+      { name: 'user', type: 'address' },
+      { name: 'requestId', type: 'uint256' },
+    ],
+    name: 'completeWithdrawal',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
 ] as const

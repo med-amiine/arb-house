@@ -2,6 +2,9 @@
 
 import { useVaultData } from '@/hooks/useVault'
 import { formatCurrency, formatPercent } from '@/lib/utils'
+import { motion } from 'framer-motion'
+import { Loader2 } from 'lucide-react'
+import { DataSourceBadge } from '@/components/ui/LoadingState'
 
 interface Agent {
   name: string
@@ -16,7 +19,19 @@ export function AgentAllocation() {
   if (isLoading) {
     return (
       <div className="card p-6">
-        <div className="stat-label mb-4">Agent Allocation</div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="stat-label">Agent Allocation</div>
+          <DataSourceBadge source="blockchain" isLoading />
+        </div>
+        <div className="flex items-center gap-2 mb-4">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          >
+            <Loader2 className="w-4 h-4 text-accent" />
+          </motion.div>
+          <span className="text-text-secondary text-xs">Loading allocations...</span>
+        </div>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse h-12 bg-surface-hover rounded"></div>

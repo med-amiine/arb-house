@@ -13,7 +13,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.35,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -45,9 +45,37 @@ export default function VaultAnalyticsPage() {
           </p>
         </motion.div>
 
-        {/* Keeper Health */}
+        {/* Keeper Health - Prominent Display */}
         <motion.div variants={itemVariants} className="mb-6">
-          <SyncHealth />
+          <div className="bg-surface border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-lg font-semibold">Keeper Health Monitor</h2>
+                <p className="text-sm text-text-secondary">
+                  Real-time sync status for agent credit vault
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-text-secondary">Next Sync Deadline</p>
+                <p className="text-sm font-mono text-accent">12 hours</p>
+              </div>
+            </div>
+            <SyncHealth />
+            <div className="mt-3 flex items-center gap-4 text-xs text-text-secondary">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-accent" />
+                <span>Healthy (&gt;50% time remaining)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-warning" />
+                <span>Warning (25-50%)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-danger" />
+                <span>Critical (&lt;25%)</span>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Vault State - Dominant Card */}

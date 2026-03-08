@@ -2,15 +2,21 @@
 
 import { useVaultData } from '@/hooks/useVault'
 import { formatCurrency } from '@/lib/utils'
+import { LoadingState, LoadingCard } from '@/components/ui/LoadingState'
 
 export function TVLCard() {
   const { tvl, isLoading } = useVaultData()
   
   if (isLoading) {
     return (
-      <div className="card p-6">
-        <div className="animate-pulse h-8 w-24 bg-surface-hover rounded"></div>
-      </div>
+      <LoadingCard className="p-6">
+        <LoadingState 
+          size="sm" 
+          text="Loading TVL..." 
+          showSource 
+          source="blockchain" 
+        />
+      </LoadingCard>
     )
   }
   

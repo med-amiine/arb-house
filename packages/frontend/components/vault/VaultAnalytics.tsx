@@ -22,7 +22,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -54,50 +54,39 @@ export function VaultAnalytics() {
     functionName: 'totalSupply',
   })
 
-  // Idle assets in vault
-  const { data: totalIdle } = useReadContract({
+  // Get agent data from getAgentInfo
+  const { data: agentInfo } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
-    functionName: 'totalIdle',
-  })
-
-  // Get agent data
-  const { data: agent0 } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'agents',
-    args: [0n],
-  })
-  const { data: agent1 } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'agents',
-    args: [1n],
-  })
-  const { data: agent2 } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'agents',
-    args: [2n],
+    functionName: 'getAgentInfo',
   })
 
   if (!mounted) return null
 
   const tvl = totalAssets ? Number(formatUnits(totalAssets, 6)) : 0
   const shares = totalSupply ? Number(formatUnits(totalSupply, 18)) : 0
-  const idle = totalIdle ? Number(formatUnits(totalIdle, 6)) : 0
-  const deployed = tvl - idle
+  
+  // Calculate deployed and idle from agent balances
+  const agents = agentInfo ? agentInfo.map((a, i) => ({
+    index: i,
+    balance: Number(formatUnits(a.currentBalance, 6)),
+    creditLimit: Number(formatUnits(a.creditLimit, 6)),
+    active: a.active,
+    adapter: a.adapter,
+    ...agentNames[i]
+  })) : agentNames.map((name, i) => ({
+    index: i,
+    balance: 0,
+    creditLimit: 0,
+    active: false,
+    adapter: '',
+    ...name
+  }))
+  
+  const deployed = agents.reduce((sum, a) => sum + a.balance, 0)
+  const idle = tvl - deployed
   
   const sharePrice = shares > 0 ? tvl / shares : 1
-
-  const agents = [agent0, agent1, agent2].map((a, i) => ({
-    index: i,
-    balance: a ? Number(formatUnits(a[2], 6)) : 0,
-    creditLimit: a ? Number(formatUnits(a[1], 6)) : 0,
-    active: a ? a[3] : false,
-    adapter: a ? a[0] : '',
-    ...agentNames[i]
-  }))
 
 
 
@@ -309,7 +298,7 @@ export function VaultAnalytics() {
           </p>
         </motion.div>
 
-        {/* Info Box -->
+        {/* Info Box */}
         <motion.div variants={itemVariants} className="card p-6 bg-gradient-to-br from-accent/5 to-transparent">
           <h4 className="font-medium mb-2">About Analytics</h4>
           <p className="text-sm text-text-secondary leading-relaxed">

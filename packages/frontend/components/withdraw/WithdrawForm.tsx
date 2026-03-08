@@ -3,48 +3,120 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { ArrowRight, Loader2, Info } from 'lucide-react'
+import { ArrowRight, Loader2, Info, Clock, CheckCircle2 } from 'lucide-react'
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
+import { useVaultData } from '@/hooks/useVault'
 import { formatNumber } from '@/lib/utils'
 
 const USDC_DECIMALS = 6
 
-export function WithdrawForm() {
+interface WithdrawalRequest {
+  shares: bigint
+  assets: bigint
+  timestamp: bigint
+  claimed: boolean
+}
+
+interface WithdrawFormProps {
+  onSuccess?: (txHash: string, shares: string, assets: string, requestId: string) => void
+}
+
+export function WithdrawForm({ onSuccess }: WithdrawFormProps) {
   const { address, isConnected } = useAccount()
+  const { refresh: refreshVault } = useVaultData()
   const [amount, setAmount] = useState('')
 
-  // Read BCV balance
+  // Read BCV balance - cached, no auto-refetch
   const { data: bcvBalance, refetch: refetchBalance } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { 
+      enabled: !!address,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
   })
 
-  // Read preview redeem
+  // Read preview redeem - short cache
   const { data: previewAssets } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: 'previewRedeem',
     args: amount ? [parseUnits(amount, USDC_DECIMALS)] : undefined,
-    query: { enabled: !!amount },
+    query: { 
+      enabled: !!amount,
+      staleTime: 30 * 1000, // 30 seconds
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
+  })
+
+  // Read user's pending assets - cached
+  const { data: pendingAssets, refetch: refetchPending } = useReadContract({
+    address: VAULT_ADDRESS,
+    abi: VAULT_ABI,
+    functionName: 'getUserPendingAssets',
+    args: address ? [address] : undefined,
+    query: { 
+      enabled: !!address,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
+  })
+
+  // Read user's withdrawal queue - cached
+  const { data: withdrawalQueue, refetch: refetchQueue } = useReadContract({
+    address: VAULT_ADDRESS,
+    abi: VAULT_ABI,
+    functionName: 'getUserWithdrawals',
+    args: address ? [address] : undefined,
+    query: { 
+      enabled: !!address,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+    },
   })
 
   // Request withdraw
   const { writeContract: requestWithdraw, isPending: isRequesting, data: withdrawHash, error: withdrawError } = useWriteContract()
-  
+
   // Wait for transaction
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: withdrawHash })
-  
+
   // Handle successful request
   useEffect(() => {
     if (isConfirmed && withdrawHash) {
       console.log('Withdrawal requested:', withdrawHash)
+      const sharesFormatted = amount ? formatNumber(Number(amount)) : '0'
+      const assetsFormatted = previewAssets ? formatNumber(Number(formatUnits(previewAssets as bigint, USDC_DECIMALS))) : '0'
+      
+      // Calculate request ID (queue length after the new request)
+      const currentQueueLength = withdrawalQueue ? (withdrawalQueue as WithdrawalRequest[]).length : 0
+      const requestId = currentQueueLength.toString()
+      
+      // Match Demo.s.sol logging format
+      console.log('=== WITHDRAWAL REQUEST ===')
+      console.log('Requested withdrawal of:', sharesFormatted, 'BCV shares')
+      console.log('Assets owed:', assetsFormatted, 'USDC')
+      console.log('Request ID:', requestId)
+      
+      onSuccess?.(withdrawHash, sharesFormatted, assetsFormatted, requestId)
       setAmount('')
-      refetchBalance()
+      
+      // Refresh all vault data
+      setTimeout(async () => {
+        await refreshVault()
+        await refetchBalance()
+        await refetchPending()
+        await refetchQueue()
+      }, 2000)
     }
-  }, [isConfirmed, withdrawHash, refetchBalance])
+  }, [isConfirmed, withdrawHash, refetchBalance, refetchPending, refetchQueue, onSuccess, amount, previewAssets, withdrawalQueue])
 
   const handleRequestWithdraw = () => {
     if (!amount) return
@@ -53,16 +125,6 @@ export function WithdrawForm() {
       abi: VAULT_ABI,
       functionName: 'requestWithdraw',
       args: [parseUnits(amount, USDC_DECIMALS)],
-    })
-  }
-  
-  const handleManualSync = () => {
-    setSyncStatus('syncing')
-    syncBalances({
-      address: VAULT_ADDRESS,
-      abi: VAULT_FULL_ABI,
-      functionName: 'syncBalances',
-      args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]],
     })
   }
 
@@ -83,8 +145,17 @@ export function WithdrawForm() {
   const balanceFormatted = bcvBalance
     ? formatNumber(Number(formatUnits(bcvBalance as bigint, USDC_DECIMALS)))
     : '0'
-    
+
+  const pendingFormatted = pendingAssets
+    ? formatNumber(Number(formatUnits(pendingAssets as bigint, USDC_DECIMALS)))
+    : '0'
+
   const isProcessing = isRequesting || isConfirming
+
+  // Filter pending (unclaimed) withdrawals
+  const pendingWithdrawals = withdrawalQueue
+    ? (withdrawalQueue as WithdrawalRequest[]).filter((w) => !w.claimed)
+    : []
 
   return (
     <div className="space-y-6">
@@ -93,6 +164,47 @@ export function WithdrawForm() {
         <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
           <p className="text-danger font-medium">Error:</p>
           <p className="text-text-secondary">{withdrawError.message}</p>
+        </div>
+      )}
+
+      {/* Pending Withdrawals */}
+      {pendingWithdrawals.length > 0 && (
+        <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-accent" />
+            <span className="font-medium text-sm">Pending Withdrawals</span>
+          </div>
+          <div className="space-y-2">
+            {pendingWithdrawals.map((withdrawal, index) => (
+              <div key={index} className="flex justify-between items-center text-sm py-2 border-b border-border/50 last:border-0">
+                <div>
+                  <span className="text-text-secondary">Request #{index + 1}</span>
+                  <span className="text-text-muted text-xs ml-2">
+                    {new Date(Number(withdrawal.timestamp) * 1000).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono font-medium">
+                    {formatNumber(Number(formatUnits(withdrawal.assets, USDC_DECIMALS)))} USDC
+                  </span>
+                  <span className="text-warning text-xs ml-2">Pending</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-text-secondary mt-3">
+            The keeper will process these withdrawals and send USDC to your wallet.
+          </p>
+        </div>
+      )}
+
+      {/* Total Pending */}
+      {pendingAssets && (pendingAssets as bigint) > BigInt(0) && (
+        <div className="bg-surface-hover rounded-lg p-4">
+          <div className="flex justify-between items-center">
+            <span className="text-text-secondary text-sm">Total Pending</span>
+            <span className="font-mono font-medium text-accent">{pendingFormatted} USDC</span>
+          </div>
         </div>
       )}
 
@@ -146,7 +258,7 @@ export function WithdrawForm() {
         <Info size={18} className="text-text-muted flex-shrink-0 mt-0.5" />
         <div className="text-sm text-text-secondary">
           <p className="mb-1"><strong className="text-text-primary">Async Withdrawal</strong></p>
-          <p>Your shares will be burned immediately. USDC will be sent to your wallet once the keeper processes your request (typically 2-5 minutes).</p>
+          <p>Your shares will be burned immediately. USDC will be sent to your wallet once the keeper processes your request (typically within minutes).</p>
         </div>
       </div>
 
@@ -169,13 +281,7 @@ export function WithdrawForm() {
         )}
       </button>
 
-      {/* Success Message */}
-      {isConfirmed && (
-        <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
-          <p className="text-accent text-sm font-medium">Withdrawal requested!</p>
-          <p className="text-text-secondary text-xs mt-1">Your request is being processed by the keeper.</p>
-        </div>
-      )}
+      {/* Success messages are shown outside the modal as notifications */}
     </div>
   )
 }

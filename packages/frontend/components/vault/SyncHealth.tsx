@@ -1,22 +1,40 @@
 'use client'
 
-import { useReadContract } from 'wagmi'
-import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { useEffect, useState } from 'react'
 import { Activity, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
+interface KeeperStatus {
+  last_sync: number
+  synced: boolean
+}
+
 export function SyncHealth() {
   const [mounted, setMounted] = useState(false)
+  const [lastSync, setLastSync] = useState<number | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const { data: lastSync } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'lastSync',
-  })
+  // Fetch keeper status from API
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const keeperUrl = process.env.NEXT_PUBLIC_KEEPER_API_URL || 'http://localhost:8000'
+        const response = await fetch(`${keeperUrl}/status`)
+        if (response.ok) {
+          const data: KeeperStatus = await response.json()
+          setLastSync(data.last_sync)
+        }
+      } catch (error) {
+        console.error('Failed to fetch keeper status:', error)
+      }
+    }
+
+    fetchStatus()
+    const interval = setInterval(fetchStatus, 60000) // Poll every minute
+    return () => clearInterval(interval)
+  }, [])
 
   const MAX_SYNC_AGE = 12 * 60 * 60 // 12 hours in seconds
 
@@ -28,7 +46,7 @@ export function SyncHealth() {
 
     const interval = setInterval(() => {
       const now = Math.floor(Date.now() / 1000)
-      const age = now - Number(lastSync)
+      const age = now - lastSync
       const remaining = Math.max(0, MAX_SYNC_AGE - age)
       const pct = (remaining / MAX_SYNC_AGE) * 100
 

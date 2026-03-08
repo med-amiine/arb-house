@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Deposit | Bond Credit Vault',
+  title: 'Deposit | bond.credit',
 }
 
 export default function DepositPage() {

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 
@@ -11,7 +11,7 @@ import { YieldEstimate } from '@/components/vault/YieldEstimate'
 import { DepositForm } from '@/components/deposit/DepositForm'
 import { WithdrawForm } from '@/components/withdraw/WithdrawForm'
 import { Dialog } from '@/components/ui/Dialog'
-import { ArrowDownCircle, ArrowUpCircle, TrendingUp } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, TrendingUp, CheckCircle2, X } from 'lucide-react'
 import Link from 'next/link'
 
 const itemVariants = {
@@ -21,7 +21,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.35,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
@@ -36,10 +36,87 @@ const containerVariants = {
   },
 }
 
+interface Notification {
+  id: string
+  type: 'success'
+  title: string
+  message: string
+  txHash?: string
+}
+
 export default function DashboardPage() {
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'position' | 'estimate'>('position')
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  // Show notification helper
+  const showNotification = (notification: Omit<Notification, 'id'>) => {
+    const id = Math.random().toString(36).substring(7)
+    const newNotification = { ...notification, id }
+    setNotifications(prev => [...prev, newNotification])
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id))
+    }, 3000)
+  }
+
+  // Handle deposit success - matches Demo.s.sol logging
+  const handleDepositSuccess = (txHash: string, deposited: string, shares: string, sharePrice: string) => {
+    // Match Demo.s.sol console format
+    console.log('=== DEPOSIT ===')
+    console.log('Deposited:', deposited, 'USDC')
+    console.log('Received shares:', shares, 'BCV')
+    console.log('Share price:', sharePrice, 'USDC per BCV (scaled)')
+    
+    showNotification({
+      type: 'success',
+      title: '=== DEPOSIT ===',
+      message: `Deposited: ${deposited} USDC\nReceived shares: ${shares} BCV\nShare price: ${sharePrice} USDC per BCV (scaled)`,
+      txHash,
+    })
+    
+    // Close modal after 4 seconds
+    setTimeout(() => {
+      setIsDepositOpen(false)
+    }, 4000)
+  }
+
+  // Handle approval success - matches Demo.s.sol logging
+  const handleApprovalSuccess = (txHash: string, amount: string) => {
+    console.log('=== USDC APPROVAL ===')
+    console.log('Transaction hash:', txHash)
+    console.log('Approved amount:', amount, 'USDC')
+    
+    showNotification({
+      type: 'success',
+      title: '=== USDC APPROVAL ===',
+      message: `Transaction hash: ${txHash.slice(0, 20)}...${txHash.slice(-8)}\nApproved amount: ${amount} USDC`,
+      txHash,
+    })
+  }
+
+  // Handle withdraw success - matches Demo.s.sol logging
+  const handleWithdrawSuccess = (txHash: string, shares: string, assets: string, requestId: string) => {
+    // Match Demo.s.sol console format
+    console.log('=== WITHDRAWAL REQUEST ===')
+    console.log('Requested withdrawal of:', shares, 'BCV shares')
+    console.log('Assets owed:', assets, 'USDC')
+    console.log('Request ID:', requestId)
+    
+    showNotification({
+      type: 'success',
+      title: '=== WITHDRAWAL REQUEST ===',
+      message: `Requested withdrawal of: ${shares} BCV shares\nAssets owed: ${assets} USDC\nRequest ID: ${requestId}`,
+      txHash,
+    })
+    
+    // Close modal after 4 seconds
+    setTimeout(() => {
+      setIsWithdrawOpen(false)
+    }, 4000)
+  }
 
   return (
     <motion.div 
@@ -48,6 +125,49 @@ export default function DashboardPage() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* Notifications - Outside modals, fixed position */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        <AnimatePresence>
+          {notifications.map((notification) => (
+            <motion.div
+              key={notification.id}
+              initial={{ opacity: 0, x: 100, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 100, scale: 0.9 }}
+              className="bg-surface border border-accent/30 rounded-xl p-4 shadow-lg min-w-[320px] max-w-md"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-accent" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-mono font-semibold text-sm text-accent">{notification.title}</h4>
+                  <div className="text-text-secondary text-xs mt-1 font-mono whitespace-pre-line">
+                    {notification.message}
+                  </div>
+                  {notification.txHash && (
+                    <a
+                      href={`https://sepolia.arbiscan.io/tx/${notification.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline mt-2 inline-block font-mono"
+                    >
+                      View on Arbiscan →
+                    </a>
+                  )}
+                </div>
+                <button
+                  onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+                  className="text-text-muted hover:text-text-primary transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section - Compact */}
         <motion.section 
@@ -121,7 +241,7 @@ export default function DashboardPage() {
             </div>
 
             {activeTab === 'position' ? (
-              <RealUserPosition />
+              <RealUserPosition onDepositClick={() => setIsDepositOpen(true)} />
             ) : (
               <YieldEstimate />
             )}
@@ -164,7 +284,10 @@ export default function DashboardPage() {
         onClose={() => setIsDepositOpen(false)}
         title="Deposit USDC"
       >
-        <DepositForm />
+        <DepositForm 
+          onSuccess={handleDepositSuccess}
+          onApprovalSuccess={handleApprovalSuccess}
+        />
       </Dialog>
 
       {/* Withdraw Modal */}
@@ -173,7 +296,7 @@ export default function DashboardPage() {
         onClose={() => setIsWithdrawOpen(false)}
         title="Withdraw USDC"
       >
-        <WithdrawForm />
+        <WithdrawForm onSuccess={handleWithdrawSuccess} />
       </Dialog>
     </motion.div>
   )

@@ -6,7 +6,6 @@ import { formatUnits } from 'viem'
 import { useEffect, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { ArrowRight, Sparkles } from 'lucide-react'
-import Link from 'next/link'
 
 interface UserPosition {
   shares: bigint
@@ -20,7 +19,11 @@ interface UserPosition {
   }[]
 }
 
-export function RealUserPosition() {
+interface RealUserPositionProps {
+  onDepositClick?: () => void
+}
+
+export function RealUserPosition({ onDepositClick }: RealUserPositionProps) {
   const { address, isConnected } = useAccount()
   const [mounted, setMounted] = useState(false)
 
@@ -111,13 +114,13 @@ export function RealUserPosition() {
             </div>
           </div>
 
-          <Link
-            href="/deposit"
+          <button
+            onClick={onDepositClick}
             className="group flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-semibold hover:bg-accent/90 transition-all hover:scale-105"
           >
             Get Started
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
+          </button>
         </div>
       </div>
     )

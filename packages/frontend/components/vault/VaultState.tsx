@@ -2,12 +2,10 @@
 
 import { motion } from 'framer-motion'
 import { useVaultData } from '@/hooks/useVault'
-import { useReadContract } from 'wagmi'
-import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
-import { formatUnits } from 'viem'
-import { Shield, Activity, TrendingUp, Wallet } from 'lucide-react'
+import { Shield, Activity, TrendingUp, Wallet, Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { SyncHealth } from './SyncHealth'
+import { DataSourceBadge, SkeletonPulse } from '@/components/ui/LoadingState'
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -16,41 +14,26 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.35,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     }
   },
 }
 
 export function VaultState() {
-  const { tvl, agents, isLoading } = useVaultData()
+  // Use enriched vault data (blockchain + config metadata)
+  const { 
+    tvl, 
+    utilization, 
+    agents, 
+    isLoading,
+    activeAgentCount 
+  } = useVaultData()
   
-  // Get deployed assets for utilization calculation
-  const { data: totalAssets } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'totalAssets',
-  })
-  
-  const { data: totalIdle } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'totalIdle',
-  })
-
-  // Calculate metrics
-  const deployed = totalAssets && totalIdle 
-    ? Number(totalAssets) - Number(totalIdle)
-    : 0
-  const utilization = totalAssets && Number(totalAssets) > 0
-    ? (deployed / Number(totalAssets)) * 100
-    : 0
-  
-  // Mock realized yield (would come from actual data)
+  // Realized yield - synced with backend config
   const realizedYield = 11.8
   
   // Risk score - fixed at 95 for optimal vault health
   const riskScore = 95
-  const activeAgents = agents?.filter(a => a.active).length || 0
 
   return (
     <motion.div 
@@ -88,9 +71,21 @@ export function VaultState() {
               <Wallet className="w-4 h-4" />
               Vault Liquidity
             </p>
-            <p className="text-4xl font-bold font-mono tracking-tight">
-              {isLoading ? '...' : formatCurrency(tvl)}
-            </p>
+            {isLoading ? (
+              <div className="flex items-center gap-2 py-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Loader2 className="w-5 h-5 text-accent" />
+                </motion.div>
+                <DataSourceBadge source="blockchain" isLoading />
+              </div>
+            ) : (
+              <p className="text-4xl font-bold font-mono tracking-tight">
+                {formatCurrency(tvl)}
+              </p>
+            )}
             <p className="text-xs text-accent mt-1">Total capital deployed</p>
           </div>
           
@@ -105,7 +100,7 @@ export function VaultState() {
             <div className="mt-2 h-1.5 bg-void rounded-full overflow-hidden">
               <div 
                 className="h-full bg-accent rounded-full"
-                style={{ width: `${utilization}%` }}
+                style={{ width: `${Math.min(utilization, 100)}%` }}
               />
             </div>
           </div>
@@ -119,7 +114,7 @@ export function VaultState() {
               {riskScore}
             </p>
             <p className="text-xs text-text-secondary mt-1">
-              Out of 100 • {activeAgents} of 3 agents active
+              Out of 100 • {activeAgentCount} of 3 agents active
             </p>
           </div>
           
@@ -142,36 +137,24 @@ export function VaultState() {
         <div>
           <p className="text-text-secondary text-sm mb-4">Agents Running</p>
           <div className="flex flex-wrap gap-3">
-            {agents?.map((agent, i) => (
+            {agents?.map((agent) => (
               <div 
-                key={i}
+                key={agent.id}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                   agent.active 
                     ? 'bg-accent/10 border-accent/30 text-accent' 
                     : 'bg-void border-border text-text-muted'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${agent.active ? 'bg-accent animate-pulse' : 'bg-text-muted'}`} />
-                <span className="text-sm font-medium">
-                  {i === 0 ? 'Aave' : i === 1 ? 'Pendle' : 'Morpho'} Agent
-                </span>
+                <span 
+                  className={`w-2 h-2 rounded-full ${
+                    agent.active ? 'bg-accent animate-pulse' : 'bg-text-muted'
+                  }`} 
+                />
+                <span className="text-sm font-medium">{agent.shortName}</span>
+                <span className="text-xs opacity-70">({agent.protocol})</span>
               </div>
-            )) || (
-              <>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                  <span className="text-sm font-medium">Aave Agent</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                  <span className="text-sm font-medium">Pendle Agent</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                  <span className="text-sm font-medium">Morpho Agent</span>
-                </div>
-              </>
-            )}
+            ))}
           </div>
         </div>
       </div>

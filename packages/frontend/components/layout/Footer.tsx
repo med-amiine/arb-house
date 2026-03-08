@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Github, Twitter, ExternalLink } from 'lucide-react'
+import { BondCreditLogo } from '@/components/icons/BondCreditLogo'
 
 export function Footer() {
   return (
@@ -8,7 +9,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="font-bold text-lg mb-2">Bond Credit Vault</h3>
+            <BondCreditLogo className="h-5 w-auto text-white mb-3" />
             <p className="text-text-secondary text-sm max-w-md">
               Institutional-grade credit vault powered by AI agents for optimized yield on Arbitrum.
             </p>
@@ -75,7 +76,7 @@ export function Footer() {
 
         <div className="border-t border-border/40 mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-text-muted">
-            © 2024 Bond Credit Vault. All rights reserved.
+            © 2024 bond.credit. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-text-muted">
             <Link href="#" className="hover:text-text-primary transition-colors">Privacy</Link>

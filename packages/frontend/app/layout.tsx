@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Bond Credit Vault | AI-Powered Yield Optimization',
+  title: 'bond.credit | AI-Powered Yield Optimization',
   description: 'Institutional-grade credit vault powered by AI agents for optimized yield on Arbitrum',
   keywords: ['DeFi', 'yield', 'AI', 'Arbitrum', 'credit vault'],
 }

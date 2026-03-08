@@ -2,11 +2,13 @@
 
 import { useKeeperData } from '@/hooks/useKeeper'
 import { formatNumber } from '@/lib/utils'
-import { ArrowDownLeft, ArrowUpRight, Clock, ExternalLink } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Clock, ExternalLink, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { DataSourceBadge, DemoDataBadge } from '@/components/ui/LoadingState'
 
 export function RecentActivity() {
-  const { transactions, isLoading } = useKeeperData()
+  const { transactions, isLoading, isUsingMockData } = useKeeperData()
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -53,7 +55,10 @@ export function RecentActivity() {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-semibold">Recent Activity</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold">Recent Activity</h3>
+          {isUsingMockData && <DemoDataBadge count={Math.min(transactions.length, 5)} />}
+        </div>
         <Link 
           href="/transactions" 
           className="text-sm text-accent hover:text-accent-hover flex items-center gap-1"
@@ -64,16 +69,28 @@ export function RecentActivity() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-void animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-surface" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-surface rounded w-24" />
-                <div className="h-3 bg-surface rounded w-16" />
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="w-4 h-4 text-accent" />
+            </motion.div>
+            <span className="text-text-secondary text-sm">Loading transactions...</span>
+            <DataSourceBadge source="backend" isLoading />
+          </div>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-void animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-surface" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-surface rounded w-24" />
+                  <div className="h-3 bg-surface rounded w-16" />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : transactions.length === 0 ? (
         <div className="text-center py-8">

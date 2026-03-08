@@ -3,7 +3,7 @@ import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 
 export const metadata: Metadata = {
-  title: 'Yield | Bond Credit Vault',
+  title: 'Yield | bond.credit',
   description: 'Track yield performance across all AI agents',
 }
 

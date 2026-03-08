@@ -74,11 +74,38 @@ async def liveness_check():
 
 @router.get("/agents")
 async def agent_health():
-    """Health status of all AI agents"""
+    """Health status of all AI agents - matches UI AgentList component"""
     if settings.mock_mode:
         return [
-            {"id": 0, "name": "Aave Agent", "active": True, "balance": 500000, "apy": 6.2},
-            {"id": 1, "name": "Pendle Agent", "active": True, "balance": 437500, "apy": 9.8},
-            {"id": 2, "name": "Morpho Agent", "active": True, "balance": 312500, "apy": 7.5},
+            {
+                "id": 0, 
+                "name": settings.agent_names[0],  # Aave Lending Agent
+                "strategy": settings.agent_strategies[0],
+                "protocol": settings.agent_protocols[0],
+                "risk": settings.agent_risks[0],
+                "active": True, 
+                "balance": 500000, 
+                "apy": settings.agent_target_apys[0]
+            },
+            {
+                "id": 1, 
+                "name": settings.agent_names[1],  # Pendle Carry Agent
+                "strategy": settings.agent_strategies[1],
+                "protocol": settings.agent_protocols[1],
+                "risk": settings.agent_risks[1],
+                "active": True, 
+                "balance": 437500, 
+                "apy": settings.agent_target_apys[1]
+            },
+            {
+                "id": 2, 
+                "name": settings.agent_names[2],  # Basis Trading Agent
+                "strategy": settings.agent_strategies[2],
+                "protocol": settings.agent_protocols[2],
+                "risk": settings.agent_risks[2],
+                "active": True, 
+                "balance": 312500, 
+                "apy": settings.agent_target_apys[2]
+            },
         ]
     return {"agents": []}

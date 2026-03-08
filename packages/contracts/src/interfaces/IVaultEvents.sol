@@ -13,6 +13,8 @@ interface IVaultEvents {
     
     event BalancesSynced(uint256[3] balances, uint256 timestamp);
     
+    event FundsAllocated(uint256 indexed agentIndex, uint256 amount, uint256 newBalance);
+    
     event WithdrawalQueued(address indexed user, uint256 indexed requestId, uint256 shares, uint256 assets);
     event WithdrawalCompleted(address indexed user, uint256 indexed requestId, uint256 assets);
     

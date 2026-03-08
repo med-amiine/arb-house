@@ -53,12 +53,19 @@ class BalanceSync:
             "type": "function"
         },
         {
+            "inputs": [{"name": "allocations", "type": "uint256[3]"}],
+            "name": "allocateToAgents",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
             "inputs": [],
-            "name": "keeper",
-            "outputs": [{"name": "", "type": "address"}],
+            "name": "calculateAllocations",
+            "outputs": [{"name": "", "type": "uint256[3]"}],
             "stateMutability": "view",
             "type": "function"
-        }
+        },
     ]
     
     _instance = None
@@ -189,17 +196,111 @@ class BalanceSync:
         return balances
     
     async def _check_rebalance(self):
-        """Check if rebalancing is needed"""
+        """Check if rebalancing is needed and trigger allocation if idle funds available"""
         try:
             should_rebal = self.vault.functions.shouldRebalance().call()
+            idle_funds = self.vault.functions.totalIdle().call()
             
-            if should_rebal:
-                logger.info("rebalance_needed")
-                # Note: Actual rebalancing would be implemented here
-                # For MVP, we just log it since agents manage their own capital
+            if should_rebal and idle_funds > 0:
+                logger.info("rebalance_needed_with_idle_funds", idle_funds=idle_funds)
+                # Automatically allocate idle funds to agents
+                try:
+                    allocations = await self._calculate_allocations()
+                    if any(alloc > 0 for alloc in allocations):
+                        tx_hash = await self._execute_allocation(allocations)
+                        logger.info("auto_allocation_completed", 
+                                  allocations=allocations, 
+                                  tx_hash=tx_hash.hex())
+                except Exception as e:
+                    logger.error("auto_allocation_failed", error=str(e))
+            elif should_rebal:
+                logger.debug("rebalance_needed_but_no_idle_funds")
                 
         except Exception as e:
             logger.error("rebalance_check_failed", error=str(e))
+    
+    async def _calculate_allocations(self) -> List[int]:
+        """Calculate optimal allocations based on target weights and idle funds"""
+        try:
+            # Call the contract's calculateAllocations function
+            allocations = self.vault.functions.calculateAllocations().call()
+            logger.info("calculated_allocations", allocations=allocations)
+            return list(allocations)
+        except Exception as e:
+            logger.error("calculate_allocations_failed", error=str(e))
+            # Fallback: simple equal allocation of idle funds
+            try:
+                idle_funds = self.vault.functions.totalIdle().call()
+                if idle_funds == 0:
+                    return [0, 0, 0]
+                
+                # Get agent info to check credit limits
+                allocations = [0, 0, 0]
+                remaining = idle_funds
+                
+                for i in range(3):
+                    agent = self.vault.functions.agents(i).call()
+                    if not agent[3]:  # active
+                        continue
+                    
+                    available_credit = agent[1] - agent[2]  # creditLimit - currentBalance
+                    if available_credit > 0:
+                        alloc = min(available_credit, remaining // (3 - i))
+                        allocations[i] = alloc
+                        remaining -= alloc
+                
+                logger.info("fallback_allocations_calculated", allocations=allocations)
+                return allocations
+            except Exception as e2:
+                logger.error("fallback_allocation_failed", error=str(e2))
+                return [0, 0, 0]
+    
+    async def _execute_allocation(self, allocations: List[int]) -> str:
+        """Execute allocation transaction on the vault contract"""
+        try:
+            # Convert to uint256[3] format expected by contract
+            alloc_array = (allocations[0], allocations[1], allocations[2])
+            
+            # Get gas pricing
+            try:
+                base_fee = self.w3.eth.get_block('latest').get('baseFeePerGas')
+                if base_fee:
+                    max_priority = self.w3.eth.max_priority_fee
+                    max_fee = base_fee * 2 + max_priority
+                else:
+                    raise AttributeError("No baseFeePerGas")
+            except (AttributeError, KeyError):
+                # Fallback for non-EIP-1559 networks
+                gas_price = self.w3.eth.gas_price
+                max_fee = int(gas_price * 1.5)
+                max_priority = int(gas_price * 0.1)
+            
+            tx = self.vault.functions.allocateToAgents(alloc_array).build_transaction({
+                'from': self.keeper_account.address,
+                'nonce': self.w3.eth.get_transaction_count(self.keeper_account.address),
+                'gas': 200000,
+                'maxFeePerGas': max_fee,
+                'maxPriorityFeePerGas': max_priority,
+                'chainId': settings.chain_id
+            })
+            
+            signed = self.w3.eth.account.sign_transaction(tx, settings.keeper_private_key)
+            tx_hash = self.w3.eth.send_raw_transaction(signed.rawTransaction)
+            
+            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+            
+            if receipt.status == 1:
+                logger.info("allocation_executed",
+                           tx_hash=tx_hash.hex(),
+                           allocations=allocations)
+                return tx_hash
+            else:
+                logger.error("allocation_transaction_failed", tx_hash=tx_hash.hex())
+                raise Exception(f"Transaction failed: {tx_hash.hex()}")
+                
+        except Exception as e:
+            logger.error("allocation_execution_failed", error=str(e))
+            raise
     
     def stop(self):
         self.running = False
