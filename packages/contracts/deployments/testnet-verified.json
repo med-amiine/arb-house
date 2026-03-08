@@ -1,49 +1,40 @@
 {
   "network": "arbitrum-sepolia",
   "chainId": 421614,
-  "timestamp": "2025-03-07T15:00:00Z",
-  "deployer": "0xD8CDe62aCB881329EBb4694f37314b7bBA77EbDe",
-  "verified": true,
-  "arbiscanApiKey": "VB2JSK9GINK5Q6QKZTSCY3E6HABNJ59EV8",
+  "timestamp": "2026-03-08T03:35:00Z",
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "contracts": {
     "usdc": {
-      "address": "0xA526233CdaAd2Ed586908E5D9B3446e0A6F262E5",
-      "name": "MockUSDC",
-      "verified": true,
-      "arbiscanUrl": "https://sepolia.arbiscan.io/address/0xA526233CdaAd2Ed586908E5D9B3446e0A6F262E5#code",
-      "balance": "1000000000000"
+      "address": "0xA92a00D083D9De8cD18B08fC2DDE27298633e422",
+      "verified": false,
+      "name": "MockUSDC"
     },
     "vault": {
-      "address": "0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E",
-      "name": "BondCreditVault",
-      "verified": true,
-      "arbiscanUrl": "https://sepolia.arbiscan.io/address/0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E#code"
+      "address": "0xEAEa45b8078f9fcA46DFb42b16016c8C234F7ff3",
+      "verified": false,
+      "name": "BondCreditVault"
     },
-    "keeper": "0xD8CDe62aCB881329EBb4694f37314b7bBA77EbDe",
     "agents": [
       {
         "index": 0,
-        "address": "0x3E17F1f04870Df48Aca3481CCD58ADb61CD59BDc",
+        "address": "0xA004df2beeF4EF4a58333B814A16c677c1DF4E64",
+        "verified": false,
         "name": "MockAgentAdapter",
-        "strategy": "Aave USDC Lending",
-        "verified": true,
-        "arbiscanUrl": "https://sepolia.arbiscan.io/address/0x3E17F1f04870Df48Aca3481CCD58ADb61CD59BDc#code"
+        "strategy": "Aave USDC Lending"
       },
       {
         "index": 1,
-        "address": "0x959353a97A01A03614E7475D423DFCffC4619a06",
+        "address": "0xfE435387201D3327983d19293B60C1C014E61650",
+        "verified": false,
         "name": "MockAgentAdapter",
-        "strategy": "Pendle PT Holding",
-        "verified": true,
-        "arbiscanUrl": "https://sepolia.arbiscan.io/address/0x959353a97A01A03614E7475D423DFCffC4619a06#code"
+        "strategy": "Pendle PT Holding"
       },
       {
         "index": 2,
-        "address": "0xbA0385cbB5DBEd0C450c81167808A99633d8578D",
+        "address": "0xD86bc69b52508368622E4F9f8f70a603FFbFC89C",
+        "verified": false,
         "name": "MockAgentAdapter",
-        "strategy": "Morpho Lending",
-        "verified": true,
-        "arbiscanUrl": "https://sepolia.arbiscan.io/address/0xbA0385cbB5DBEd0C450c81167808A99633d8578D#code"
+        "strategy": "Morpho Lending"
       }
     ]
   }

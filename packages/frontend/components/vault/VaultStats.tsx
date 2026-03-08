@@ -2,7 +2,7 @@
 
 import { useVaultData } from '@/hooks/useVault'
 import { TrendingUp, Users, Wallet, Percent } from 'lucide-react'
-import { formatNumber } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 
 export function VaultStats() {
   const { sharePrice, tvl, agents, isLoading } = useVaultData()
@@ -10,7 +10,7 @@ export function VaultStats() {
   const stats = [
     {
       label: 'Total Value Locked',
-      value: isLoading ? '...' : `$${formatNumber(tvl)}`,
+      value: isLoading ? '...' : formatCurrency(tvl),
       change: '+2.45%', // Mock change for now
       icon: Wallet,
       trend: 'up',

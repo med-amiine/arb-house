@@ -54,7 +54,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-text-secondary">
               <li>
                 <Link
-                  href="https://arbiscan.io/address/0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E"
+                  href="https://sepolia.arbiscan.io/address/0xEAEa45b8078f9fcA46DFb42b16016c8C234F7ff3"
                   target="_blank"
                   rel="noopener"
                   className="hover:text-text-primary transition-colors inline-flex items-center gap-1"
