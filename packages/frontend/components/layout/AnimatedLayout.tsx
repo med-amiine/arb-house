@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
 interface AnimatedLayoutProps {
@@ -10,31 +10,31 @@ interface AnimatedLayoutProps {
 
 export function AnimatedLayout({ children }: AnimatedLayoutProps) {
   const pathname = usePathname()
-  const [isReady, setIsReady] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Small delay to ensure hydration is complete
-    const timer = setTimeout(() => setIsReady(true), 50)
+    // Start loading state on pathname change
+    setIsLoading(true)
+    // Fade in after short delay
+    const timer = setTimeout(() => setIsLoading(false), 100)
     return () => clearTimeout(timer)
-  }, [])
-
-  // Don't animate until after hydration
-  if (!isReady) {
-    return <main className="flex-1">{children}</main>
-  }
+  }, [pathname])
 
   return (
-    <motion.main
-      key={pathname}
-      initial={{ opacity: 0.95 }}
-      animate={{ opacity: 1 }}
-      transition={{
-        duration: 0.25,
-        ease: 'easeOut',
-      }}
-      className="flex-1"
-    >
-      {children}
-    </motion.main>
+    <AnimatePresence mode="wait">
+      <motion.main
+        key={pathname}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isLoading ? 0 : 1 }}
+        exit={{ opacity: 0 }}
+        transition={{
+          duration: 0.4,
+          ease: [0.25, 0.1, 0.25, 1],
+        }}
+        className="flex-1"
+      >
+        {children}
+      </motion.main>
+    </AnimatePresence>
   )
 }
