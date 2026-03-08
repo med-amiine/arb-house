@@ -9,12 +9,10 @@ import {
   TrendingUp, 
   Wallet, 
   Coins, 
-  Clock, 
   PieChart, 
   Activity,
   ArrowUpRight,
-  Shield,
-  AlertCircle
+  Shield
 } from 'lucide-react'
 
 const itemVariants = {
@@ -83,13 +81,6 @@ export function VaultAnalytics() {
     args: [2n],
   })
 
-  // Last sync time
-  const { data: lastSync } = useReadContract({
-    address: VAULT_ADDRESS,
-    abi: VAULT_ABI,
-    functionName: 'lastSync',
-  })
-
   if (!mounted) return null
 
   const tvl = totalAssets ? Number(formatUnits(totalAssets, 6)) : 0
@@ -108,17 +99,7 @@ export function VaultAnalytics() {
     ...agentNames[i]
   }))
 
-  const timeSinceSync = lastSync 
-    ? Math.floor((Date.now() / 1000 - Number(lastSync)) / 60)
-    : null
 
-  const isStale = timeSinceSync !== null && timeSinceSync > 12 * 60 // 12 hours
-
-  const formatTimeAgo = (minutes: number) => {
-    if (minutes < 60) return `${minutes}m ago`
-    if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
-    return `${Math.floor(minutes / 1440)}d ago`
-  }
 
   return (
     <motion.div 
@@ -328,29 +309,7 @@ export function VaultAnalytics() {
           </p>
         </motion.div>
 
-        {/* Last Sync */}
-        <motion.div variants={itemVariants} className={`card p-6 ${isStale ? 'border-danger/30' : ''}`}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-xl ${isStale ? 'bg-danger/10' : 'bg-accent/10'} flex items-center justify-center`}>
-              <Clock className={`w-5 h-5 ${isStale ? 'text-danger' : 'text-accent'}`} />
-            </div>
-            <div>
-              <h3 className="font-semibold">Last Sync</h3>
-              <p className="text-xs text-text-secondary">Agent balance update</p>
-            </div>
-          </div>
-          <p className={`text-2xl font-bold font-mono ${isStale ? 'text-danger' : ''}`}>
-            {timeSinceSync !== null ? formatTimeAgo(timeSinceSync) : '--'}
-          </p>
-          {isStale && (
-            <div className="flex items-center gap-2 mt-2 text-danger text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>Sync required</span>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Info Box */}
+        {/* Info Box -->
         <motion.div variants={itemVariants} className="card p-6 bg-gradient-to-br from-accent/5 to-transparent">
           <h4 className="font-medium mb-2">About Analytics</h4>
           <p className="text-sm text-text-secondary leading-relaxed">

@@ -34,7 +34,7 @@ export function PendingWithdrawals() {
   const { data: pendingAssets } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
-    functionName: 'pendingAssets',
+    functionName: 'getUserPendingAssets',
     args: address ? [address] : undefined,
     query: { enabled: !!address },
   })

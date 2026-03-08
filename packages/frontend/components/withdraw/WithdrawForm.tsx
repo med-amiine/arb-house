@@ -3,28 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { ArrowRight, Loader2, Info, RefreshCw } from 'lucide-react'
+import { ArrowRight, Loader2, Info } from 'lucide-react'
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { formatNumber } from '@/lib/utils'
 
 const USDC_DECIMALS = 6
 
-// Vault ABI with syncBalances function
-const VAULT_FULL_ABI = [
-  ...VAULT_ABI,
-  {
-    inputs: [{ name: "balances", type: "uint256[3]" }],
-    name: "syncBalances",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-] as const
-
 export function WithdrawForm() {
   const { address, isConnected } = useAccount()
   const [amount, setAmount] = useState('')
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle')
 
   // Read BCV balance
   const { data: bcvBalance, refetch: refetchBalance } = useReadContract({
@@ -47,39 +34,17 @@ export function WithdrawForm() {
   // Request withdraw
   const { writeContract: requestWithdraw, isPending: isRequesting, data: withdrawHash, error: withdrawError } = useWriteContract()
   
-  // Sync balances after withdraw
-  const { writeContract: syncBalances, isPending: isSyncing, data: syncHash, error: syncError } = useWriteContract()
-
   // Wait for transaction
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: withdrawHash })
-  const { isLoading: isConfirmingSync, isSuccess: isSyncSuccess } = useWaitForTransactionReceipt({ hash: syncHash })
   
-  // Auto-sync after withdraw
+  // Handle successful request
   useEffect(() => {
     if (isConfirmed && withdrawHash) {
-      console.log('Withdraw confirmed, triggering balance sync...')
-      setSyncStatus('syncing')
-      
-      syncBalances({
-        address: VAULT_ADDRESS,
-        abi: VAULT_FULL_ABI,
-        functionName: 'syncBalances',
-        args: [[BigInt(500000000000), BigInt(437500000000), BigInt(312500000000)]],
-      })
-    }
-  }, [isConfirmed, withdrawHash, syncBalances])
-  
-  // Handle sync success
-  useEffect(() => {
-    if (isSyncSuccess) {
-      console.log('Balance sync confirmed')
-      setSyncStatus('synced')
+      console.log('Withdrawal requested:', withdrawHash)
       setAmount('')
       refetchBalance()
-      
-      setTimeout(() => setSyncStatus('idle'), 5000)
     }
-  }, [isSyncSuccess, refetchBalance])
+  }, [isConfirmed, withdrawHash, refetchBalance])
 
   const handleRequestWithdraw = () => {
     if (!amount) return
@@ -119,55 +84,17 @@ export function WithdrawForm() {
     ? formatNumber(Number(formatUnits(bcvBalance as bigint, USDC_DECIMALS)))
     : '0'
     
-  const isProcessing = isRequesting || isConfirming || isSyncing || isConfirmingSync
+  const isProcessing = isRequesting || isConfirming
 
   return (
     <div className="space-y-6">
-      {/* Sync Status Indicator */}
-      {syncStatus !== 'idle' && (
-        <div className={`rounded-lg p-4 text-sm ${
-          syncStatus === 'syncing' ? 'bg-warning/10 border border-warning/30' :
-          syncStatus === 'synced' ? 'bg-accent/10 border border-accent/30' :
-          'bg-danger/10 border border-danger/30'
-        }`}>
-          <div className="flex items-center gap-2">
-            {syncStatus === 'syncing' && <RefreshCw size={16} className="animate-spin text-warning" />}
-            {syncStatus === 'synced' && <ArrowRight size={16} className="text-accent" />}
-            {syncStatus === 'error' && <span className="text-danger">⚠</span>}
-            <span className={
-              syncStatus === 'syncing' ? 'text-warning' :
-              syncStatus === 'synced' ? 'text-accent' :
-              'text-danger'
-            }>
-              {syncStatus === 'syncing' && 'Syncing vault balances...'}
-              {syncStatus === 'synced' && 'Vault synced successfully!'}
-              {syncStatus === 'error' && 'Sync failed. Try manual sync.'}
-            </span>
-          </div>
-        </div>
-      )}
-      
       {/* Error Display */}
-      {(withdrawError || syncError) && (
+      {withdrawError && (
         <div className="bg-danger/10 border border-danger/30 rounded-lg p-4 text-sm">
           <p className="text-danger font-medium">Error:</p>
-          {withdrawError && <p className="text-text-secondary">{withdrawError.message}</p>}
-          {syncError && <p className="text-text-secondary">Sync: {syncError.message}</p>}
+          <p className="text-text-secondary">{withdrawError.message}</p>
         </div>
       )}
-      
-      {/* Manual Sync Button */}
-      <button
-        onClick={handleManualSync}
-        disabled={isSyncing || isConfirmingSync}
-        className="w-full btn-secondary flex items-center justify-center gap-2 py-2 text-sm"
-      >
-        {(isSyncing || isConfirmingSync) ? (
-          <><RefreshCw size={14} className="animate-spin" /> Syncing...</>
-        ) : (
-          <><RefreshCw size={14} /> Sync Vault Balances</>
-        )}
-      </button>
 
       {/* Amount Input */}
       <div className="space-y-2">
@@ -232,7 +159,7 @@ export function WithdrawForm() {
         {isProcessing ? (
           <span className="flex items-center gap-2">
             <Loader2 size={18} className="animate-spin" />
-            {isConfirming ? 'Confirming...' : isSyncing ? 'Syncing...' : 'Requesting...'}
+            {isConfirming ? 'Confirming...' : 'Requesting...'}
           </span>
         ) : (
           <span className="flex items-center gap-2">
@@ -243,9 +170,9 @@ export function WithdrawForm() {
       </button>
 
       {/* Success Message */}
-      {isSyncSuccess && (
+      {isConfirmed && (
         <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
-          <p className="text-accent text-sm font-medium">Withdrawal & Sync completed!</p>
+          <p className="text-accent text-sm font-medium">Withdrawal requested!</p>
           <p className="text-text-secondary text-xs mt-1">Your request is being processed by the keeper.</p>
         </div>
       )}
