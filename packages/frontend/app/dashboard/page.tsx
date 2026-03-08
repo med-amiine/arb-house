@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { VaultStats } from '@/components/vault/VaultStats'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
@@ -14,16 +15,46 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ArrowDownCircle, ArrowUpCircle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+}
+
 export default function DashboardPage() {
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'position' | 'estimate'>('position')
 
   return (
-    <div className="min-h-screen py-8">
+    <motion.div 
+      className="min-h-screen py-8"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section - Compact */}
-        <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-accent/5 via-surface to-surface border border-border mb-4">
+        <motion.section 
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-xl bg-gradient-to-br from-accent/5 via-surface to-surface border border-border mb-4"
+        >
           <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent" />
           <div className="relative p-4 lg:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -55,22 +86,25 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Sync Health Banner - Compact */}
-        <div className="mb-6">
+        <motion.div variants={itemVariants} className="mb-6">
           <SyncHealth />
-        </div>
+        </motion.div>
 
         {/* Stats Section */}
-        <section className="mb-8">
+        <motion.section variants={itemVariants} className="mb-8">
           <VaultStats />
-        </section>
+        </motion.section>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <motion.div 
+          variants={containerVariants}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        >
           {/* Left Column - User Data */}
-          <div className="space-y-6">
+          <motion.div variants={itemVariants} className="space-y-6">
             {/* Tab Switcher */}
             <div className="bg-surface border border-border rounded-xl p-1">
               <div className="flex gap-1">
@@ -125,14 +159,14 @@ export default function DashboardPage() {
             </Link>
             
             <RecentActivity />
-          </div>
+          </motion.div>
 
           {/* Right Column - Charts & Agents */}
-          <div className="lg:col-span-2 space-y-6">
+          <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
             <YieldChart mode={activeTab} />
             <AgentList />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Deposit Modal */}
@@ -152,6 +186,6 @@ export default function DashboardPage() {
       >
         <WithdrawForm />
       </Dialog>
-    </div>
+    </motion.div>
   )
 }

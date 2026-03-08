@@ -1,6 +1,6 @@
 // Contract Addresses - Arbitrum Sepolia Testnet
-export const VAULT_ADDRESS = '0xEAEa45b8078f9fcA46DFb42b16016c8C234F7ff3' as `0x${string}`
-export const USDC_ADDRESS = '0xA92a00D083D9De8cD18B08fC2DDE27298633e422' as `0x${string}`
+export const VAULT_ADDRESS = '0x5fced2ffc59401d5a3D2439C7b997E7bcCF85Ff8' as `0x${string}`
+export const USDC_ADDRESS = '0x3AD4869afcC42f5Ad199914d398b3172c576f413' as `0x${string}`
 
 // RPC URLs
 export const RPC_URL = 'https://arb-sepolia.g.alchemy.com/v2/7JENWA60Eynfh2ipu6KWZ'

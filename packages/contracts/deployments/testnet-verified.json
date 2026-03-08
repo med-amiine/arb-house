@@ -1,25 +1,26 @@
 {
   "network": "arbitrum-sepolia",
   "chainId": 421614,
-  "timestamp": "2026-03-08T04:00:00Z",
+  "timestamp": "2026-03-08T04:05:00Z",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "keeper": "0xD8CDe62aCB881329EBb4694f37314b7bBA77EbDe",
   "contracts": {
     "usdc": {
-      "address": "0xA92a00D083D9De8cD18B08fC2DDE27298633e422",
+      "address": "0x3AD4869afcC42f5Ad199914d398b3172c576f413",
       "name": "MockUSDC",
       "verified": true,
       "verifiers": ["blockscout"]
     },
     "vault": {
-      "address": "0xEAEa45b8078f9fcA46DFb42b16016c8C234F7ff3",
+      "address": "0x5fced2ffc59401d5a3D2439C7b997E7bcCF85Ff8",
       "name": "BondCreditVault",
       "verified": true,
-      "verifiers": ["blockscout", "sourcify", "arbiscan"]
+      "verifiers": ["blockscout"]
     },
     "agents": [
       {
         "index": 0,
-        "address": "0xA004df2beeF4EF4a58333B814A16c677c1DF4E64",
+        "address": "0xD8d69B943eD9bA56A433375703C0cCa3f53C8678",
         "name": "MockAgentAdapter",
         "strategy": "Aave USDC Lending",
         "verified": true,
@@ -27,7 +28,7 @@
       },
       {
         "index": 1,
-        "address": "0xfE435387201D3327983d19293B60C1C014E61650",
+        "address": "0x197FB8D29D14B5eF6cAfF78B799788Ae10D2B681",
         "name": "MockAgentAdapter",
         "strategy": "Pendle PT Holding",
         "verified": true,
@@ -35,7 +36,7 @@
       },
       {
         "index": 2,
-        "address": "0xD86bc69b52508368622E4F9f8f70a603FFbFC89C",
+        "address": "0x1360963C6c5E707CAFA724078d26034FB8554c7A",
         "name": "MockAgentAdapter",
         "strategy": "Morpho Lending",
         "verified": true,
@@ -44,8 +45,6 @@
     ]
   },
   "verificationUrls": {
-    "blockscout": "https://arbitrum-sepolia.blockscout.com",
-    "arbiscan": "https://sepolia.arbiscan.io",
-    "sourcify": "https://sourcify.dev"
+    "blockscout": "https://arbitrum-sepolia.blockscout.com"
   }
 }

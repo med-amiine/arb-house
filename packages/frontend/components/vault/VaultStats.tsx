@@ -1,8 +1,21 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { useVaultData } from '@/hooks/useVault'
 import { TrendingUp, Users, Wallet, Percent } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
 
 export function VaultStats() {
   const { sharePrice, tvl, agents, isLoading } = useVaultData()
@@ -39,12 +52,25 @@ export function VaultStats() {
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <motion.div 
+      className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.06,
+          },
+        },
+      }}
+    >
       {stats.map((stat) => {
         const Icon = stat.icon
         return (
-          <div
+          <motion.div
             key={stat.label}
+            variants={cardVariants}
             className="bg-surface border border-border rounded-xl p-6 hover:border-accent/50 transition-colors group"
           >
             <div className="flex items-center justify-between mb-4">
@@ -61,9 +87,9 @@ export function VaultStats() {
                 <span className="text-text-muted">vs last week</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         )
       })}
-    </div>
+    </motion.div>
   )
 }
