@@ -5,7 +5,6 @@ import { VAULT_ADDRESS, VAULT_ABI, USDC_ADDRESS, USDC_ABI } from '@/lib/contract
 import { formatUnits } from 'viem'
 import { useEffect, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
-import { Eye, EyeOff } from 'lucide-react'
 
 interface UserPosition {
   shares: bigint
@@ -22,7 +21,7 @@ interface UserPosition {
 export function RealUserPosition() {
   const { address, isConnected } = useAccount()
   const [mounted, setMounted] = useState(false)
-  const [hideBalance, setHideBalance] = useState(false)
+
 
   useEffect(() => {
     setMounted(true)
@@ -83,30 +82,16 @@ export function RealUserPosition() {
 
   const totalValue = assetsNum + usdcNum + pendingAssets
 
-  const toggleHideBalance = () => setHideBalance(!hideBalance)
-
   return (
     <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">Your Position</h3>
-        <button
-          onClick={toggleHideBalance}
-          className="p-2 rounded-lg hover:bg-surface-hover transition-colors"
-        >
-          {hideBalance ? (
-            <EyeOff className="w-4 h-4 text-text-muted" />
-          ) : (
-            <Eye className="w-4 h-4 text-text-muted" />
-          )}
-        </button>
-      </div>
+      <h3 className="text-lg font-semibold mb-6">Your Position</h3>
       
       <div className="space-y-6">
         {/* Total Value */}
         <div>
           <p className="text-sm text-text-secondary mb-1">Total Value</p>
           <p className="text-3xl font-bold font-mono">
-            {hideBalance ? '****' : formatCurrency(totalValue)}
+            {formatCurrency(totalValue)}
           </p>
         </div>
 
@@ -118,7 +103,7 @@ export function RealUserPosition() {
               <span className="text-sm">Vault Deposits</span>
             </div>
             <span className="font-mono font-medium">
-              {hideBalance ? '****' : formatCurrency(assetsNum)}
+              {formatCurrency(assetsNum)}
             </span>
           </div>
 
@@ -128,7 +113,7 @@ export function RealUserPosition() {
               <span className="text-sm">Pending Withdrawals</span>
             </div>
             <span className="font-mono font-medium">
-              {hideBalance ? '****' : formatCurrency(pendingAssets)}
+              {formatCurrency(pendingAssets)}
             </span>
           </div>
 
@@ -138,7 +123,7 @@ export function RealUserPosition() {
               <span className="text-sm">Wallet USDC</span>
             </div>
             <span className="font-mono font-medium">
-              {hideBalance ? '****' : formatCurrency(usdcNum)}
+              {formatCurrency(usdcNum)}
             </span>
           </div>
         </div>
@@ -147,7 +132,7 @@ export function RealUserPosition() {
         <div className="pt-4 border-t border-border">
           <div className="flex justify-between text-sm">
             <span className="text-text-secondary">Your Shares</span>
-            <span className="font-mono">{hideBalance ? '****' : `${sharesNum.toLocaleString(undefined, { maximumFractionDigits: 4 })} BCV`}</span>
+            <span className="font-mono">{`${sharesNum.toLocaleString(undefined, { maximumFractionDigits: 4 })} BCV`}</span>
           </div>
         </div>
 
@@ -167,7 +152,7 @@ export function RealUserPosition() {
                     </span>
                   </div>
                   <span className="font-mono">
-                    {hideBalance ? '****' : formatCurrency(Number(formatUnits(w.assets, 6)))}
+                    {formatCurrency(Number(formatUnits(w.assets, 6)))}
                   </span>
                 </div>
               ))}

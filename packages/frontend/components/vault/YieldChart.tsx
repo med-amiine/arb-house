@@ -1,18 +1,33 @@
 'use client'
 
-import { TrendingUp, Info } from 'lucide-react'
+import { TrendingUp, Info, Calculator } from 'lucide-react'
 import { useKeeperVault } from '@/hooks/useKeeper'
 
-export function YieldChart() {
+interface YieldChartProps {
+  mode?: 'position' | 'estimate'
+}
+
+export function YieldChart({ mode = 'position' }: YieldChartProps) {
   const { yieldHistory, isLoading } = useKeeperVault()
   
-  // Use API data or fallback to defaults
-  const dataPoints = yieldHistory.length > 0 
+  // Historical data (12 months)
+  const historicalData = yieldHistory.length > 0 
     ? yieldHistory.map(y => y.apy) 
     : [4.2, 5.1, 4.8, 6.2, 5.9, 7.1, 6.8, 8.2, 7.9, 8.5, 8.1, 8.42]
   
+  // Projected data (next 12 months)
+  const projectedData = [8.5, 8.8, 9.1, 9.3, 9.0, 9.5, 9.8, 10.2, 10.5, 10.8, 11.0, 11.2]
+  
+  // Combined data for estimate mode
+  const combinedData = [...historicalData.slice(-6), ...projectedData.slice(0, 6)]
+  
+  const dataPoints = mode === 'position' ? historicalData : combinedData
   const maxValue = Math.max(...dataPoints)
   const minValue = Math.min(...dataPoints)
+  
+  const labels = mode === 'position' 
+    ? ['Jan', 'Mar', 'Jun', 'Sep', 'Dec']
+    : ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
 
   if (isLoading) {
     return (
@@ -30,14 +45,29 @@ export function YieldChart() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-accent" />
-            Yield Performance
+            {mode === 'position' ? (
+              <>
+                <TrendingUp className="w-5 h-5 text-accent" />
+                Yield Performance
+              </>
+            ) : (
+              <>
+                <Calculator className="w-5 h-5 text-accent" />
+                Yield Projection
+              </>
+            )}
           </h3>
-          <p className="text-text-secondary text-sm">12-month APY history</p>
+          <p className="text-text-secondary text-sm">
+            {mode === 'position' 
+              ? '12-month APY history' 
+              : 'Historical + Projected APY (12 months)'}
+          </p>
         </div>
         <div className="flex items-center gap-2 text-text-muted">
           <Info className="w-4 h-4" />
-          <span className="text-sm">Real-time updates</span>
+          <span className="text-sm">
+            {mode === 'position' ? 'Real-time updates' : 'Based on 12% APY'}
+          </span>
         </div>
       </div>
 
@@ -46,6 +76,8 @@ export function YieldChart() {
           {dataPoints.map((value, index) => {
             const height = ((value - minValue) / (maxValue - minValue)) * 80 + 20
             const isLast = index === dataPoints.length - 1
+            const isProjected = mode === 'estimate' && index >= 6
+            
             return (
               <div
                 key={index}
@@ -53,7 +85,11 @@ export function YieldChart() {
               >
                 <div
                   className={`w-full rounded-t transition-all duration-500 ${
-                    isLast ? 'bg-accent' : 'bg-accent/30 group-hover:bg-accent/50'
+                    isLast 
+                      ? 'bg-accent' 
+                      : isProjected
+                        ? 'bg-accent/50 group-hover:bg-accent/70'
+                        : 'bg-accent/30 group-hover:bg-accent/50'
                   }`}
                   style={{ height: `${height}%` }}
                 />
@@ -73,12 +109,23 @@ export function YieldChart() {
       </div>
 
       <div className="flex justify-between text-xs text-text-muted mt-4">
-        <span>Jan</span>
-        <span>Mar</span>
-        <span>Jun</span>
-        <span>Sep</span>
-        <span>Dec</span>
+        {labels.filter((_, i) => i % 2 === 0 || i === labels.length - 1).map((label, i) => (
+          <span key={i}>{label}</span>
+        ))}
       </div>
+      
+      {mode === 'estimate' && (
+        <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-accent/30" />
+            <span className="text-xs text-text-secondary">Historical</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-accent/50" />
+            <span className="text-xs text-text-secondary">Projected</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

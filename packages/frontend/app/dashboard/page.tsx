@@ -6,6 +6,7 @@ import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 import { RecentActivity } from '@/components/vault/RecentActivity'
 import { RealUserPosition } from '@/components/vault/RealUserPosition'
+import { YieldEstimate } from '@/components/vault/YieldEstimate'
 import { SyncHealth } from '@/components/vault/SyncHealth'
 import { DepositForm } from '@/components/deposit/DepositForm'
 import { WithdrawForm } from '@/components/withdraw/WithdrawForm'
@@ -16,6 +17,7 @@ import Link from 'next/link'
 export default function DashboardPage() {
   const [isDepositOpen, setIsDepositOpen] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'position' | 'estimate'>('position')
 
   return (
     <div className="min-h-screen py-8">
@@ -69,7 +71,37 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - User Data */}
           <div className="space-y-6">
-            <RealUserPosition />
+            {/* Tab Switcher */}
+            <div className="bg-surface border border-border rounded-xl p-1">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setActiveTab('position')}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'position'
+                      ? 'bg-accent text-white'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                  }`}
+                >
+                  Your Position
+                </button>
+                <button
+                  onClick={() => setActiveTab('estimate')}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'estimate'
+                      ? 'bg-accent text-white'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                  }`}
+                >
+                  Yield Estimate
+                </button>
+              </div>
+            </div>
+
+            {activeTab === 'position' ? (
+              <RealUserPosition />
+            ) : (
+              <YieldEstimate />
+            )}
             
             {/* Link to Detailed Analytics */}
             <Link 
@@ -97,7 +129,7 @@ export default function DashboardPage() {
 
           {/* Right Column - Charts & Agents */}
           <div className="lg:col-span-2 space-y-6">
-            <YieldChart />
+            <YieldChart mode={activeTab} />
             <AgentList />
           </div>
         </div>
