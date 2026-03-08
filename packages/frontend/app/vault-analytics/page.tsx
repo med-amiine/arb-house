@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { VaultState } from '@/components/vault/VaultState'
 import { VaultAnalytics } from '@/components/vault/VaultAnalytics'
 import { VaultRadar } from '@/components/vault/VaultRadar'
+import { SyncHealth } from '@/components/vault/SyncHealth'
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -44,13 +45,18 @@ export default function VaultAnalyticsPage() {
           </p>
         </motion.div>
 
-        {/* Vault State with Health Bar */}
-        <motion.section variants={itemVariants} className="mb-8">
+        {/* Keeper Health */}
+        <motion.div variants={itemVariants} className="mb-6">
+          <SyncHealth />
+        </motion.div>
+
+        {/* Vault State - Dominant Card */}
+        <motion.section variants={itemVariants} className="mb-6">
           <VaultState />
         </motion.section>
 
-        {/* Risk Radar - Signature Component */}
-        <motion.section variants={itemVariants} className="mb-8">
+        {/* Risk Radar - Compact */}
+        <motion.section variants={itemVariants} className="mb-6">
           <VaultRadar />
         </motion.section>
 
