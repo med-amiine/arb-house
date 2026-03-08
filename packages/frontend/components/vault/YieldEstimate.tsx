@@ -5,20 +5,34 @@ import { useAccount, useReadContract } from 'wagmi'
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { formatUnits } from 'viem'
 import { formatCurrency } from '@/lib/utils'
-import { Calculator, TrendingUp, Clock } from 'lucide-react'
+import { Calculator, TrendingUp, Clock, Shield, Zap, AlertTriangle } from 'lucide-react'
 
-const APY_ESTIMATES = {
-  conservative: 0.08,  // 8%
-  moderate: 0.12,      // 12%
-  optimistic: 0.18,    // 18%
+const TRANCHES = {
+  senior: {
+    name: 'Senior',
+    apy: 0.0396, // 3.96% guaranteed
+    description: 'Guaranteed yield',
+    risk: 'Low',
+    icon: Shield,
+    color: 'accent',
+    allocation: 'Lending strategies',
+  },
+  junior: {
+    name: 'Junior',
+    apy: 0.12, // 12% variable
+    description: 'Open cap yield',
+    risk: 'Medium',
+    icon: Zap,
+    color: 'warning',
+    allocation: 'Full strategy mix',
+  },
 }
 
 export function YieldEstimate() {
   const { address, isConnected } = useAccount()
-  const [timeframe, setTimeframe] = useState<1 | 6 | 12>(12) // months
-  const [scenario, setScenario] = useState<'conservative' | 'moderate' | 'optimistic'>('moderate')
+  const [timeframe, setTimeframe] = useState<1 | 6 | 12>(12)
+  const [tranche, setTranche] = useState<'senior' | 'junior'>('senior')
 
-  // Get user's BCV shares
   const { data: shares } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
@@ -27,7 +41,6 @@ export function YieldEstimate() {
     query: { enabled: !!address }
   })
 
-  // Convert shares to assets
   const { data: assets } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
@@ -39,16 +52,16 @@ export function YieldEstimate() {
   if (!isConnected) {
     return (
       <div className="card p-6">
-        <h3 className="text-lg font-semibold mb-4">Yield Estimate</h3>
+        <h3 className="text-lg font-semibold mb-4">Projected Yield</h3>
         <p className="text-text-secondary">Connect wallet to view projections</p>
       </div>
     )
   }
 
   const assetsNum = assets ? Number(formatUnits(assets as bigint, 6)) : 0
-  const apy = APY_ESTIMATES[scenario]
+  const selectedTranche = TRANCHES[tranche]
+  const apy = selectedTranche.apy
   
-  // Calculate projected value
   const projectedValue = assetsNum * Math.pow(1 + apy, timeframe / 12)
   const yieldEarned = projectedValue - assetsNum
 
@@ -56,7 +69,7 @@ export function YieldEstimate() {
     <div className="card p-6 min-h-[480px] flex flex-col">
       <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
         <Calculator className="w-5 h-5 text-accent" />
-        Yield Estimate
+        Projected Yield
       </h3>
 
       <div className="space-y-6 flex-1 flex flex-col">
@@ -68,27 +81,68 @@ export function YieldEstimate() {
           </p>
         </div>
 
-        {/* Scenario Selector */}
+        {/* Tranche Selector - Risk Allocation */}
         <div>
-          <p className="text-sm text-text-secondary mb-2">APY Scenario</p>
-          <div className="grid grid-cols-3 gap-2">
-            {(['conservative', 'moderate', 'optimistic'] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setScenario(s)}
-                className={`py-2 px-3 rounded-lg text-xs font-medium capitalize transition-all ${
-                  scenario === s
-                    ? 'bg-accent text-white'
-                    : 'bg-void text-text-secondary hover:bg-surface-hover'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+          <p className="text-sm text-text-secondary mb-3">Risk Allocation</p>
+          <div className="space-y-3">
+            {(['senior', 'junior'] as const).map((key) => {
+              const t = TRANCHES[key]
+              const Icon = t.icon
+              const isSelected = tranche === key
+              
+              return (
+                <button
+                  key={key}
+                  onClick={() => setTranche(key)}
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${
+                    isSelected
+                      ? key === 'senior'
+                        ? 'bg-accent/10 border-accent/30'
+                        : 'bg-warning/10 border-warning/30'
+                      : 'bg-void border-border hover:border-accent/20'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        key === 'senior' ? 'bg-accent/20' : 'bg-warning/20'
+                      }`}>
+                        <Icon className={`w-5 h-5 ${key === 'senior' ? 'text-accent' : 'text-warning'}`} />
+                      </div>
+                      <div>
+                        <div className="font-semibold">{t.name} Tranche</div>
+                        <div className="text-xs text-text-secondary">{t.description}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-xl font-bold font-mono ${key === 'senior' ? 'text-accent' : 'text-warning'}`}>
+                        {(t.apy * 100).toFixed(2)}%
+                      </div>
+                      <div className="text-xs text-text-secondary">APY</div>
+                    </div>
+                  </div>
+                  
+                  {key === 'senior' && (
+                    <div className="mt-3 pt-3 border-t border-accent/20">
+                      <div className="flex items-center gap-2 text-xs text-accent">
+                        <Shield className="w-3 h-3" />
+                        <span>Principal protected • Fixed yield</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {key === 'junior' && (
+                    <div className="mt-3 pt-3 border-t border-warning/20">
+                      <div className="flex items-center gap-2 text-xs text-warning">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>Higher risk • Variable returns</span>
+                      </div>
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
-          <p className="text-xs text-text-muted mt-2">
-            {(apy * 100).toFixed(0)}% APY
-          </p>
         </div>
 
         {/* Timeframe Selector */}
@@ -137,7 +191,7 @@ export function YieldEstimate() {
             </div>
             <span className="font-mono font-bold text-lg text-accent">
               +{formatCurrency(yieldEarned)}
-              </span>
+            </span>
           </div>
 
           <div className="pt-3 border-t border-border">
@@ -151,7 +205,9 @@ export function YieldEstimate() {
         </div>
 
         <p className="text-xs text-text-muted">
-          * Estimates are based on historical APY and do not guarantee future returns.
+          * {tranche === 'senior' 
+            ? 'Senior tranche offers guaranteed 3.96% APY with principal protection.' 
+            : 'Junior tranche offers higher potential returns with variable yield.'}
         </p>
       </div>
     </div>

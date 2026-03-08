@@ -115,7 +115,7 @@ export default function DashboardPage() {
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                   }`}
                 >
-                  Yield Estimate
+                  Projected Yield
                 </button>
               </div>
             </div>

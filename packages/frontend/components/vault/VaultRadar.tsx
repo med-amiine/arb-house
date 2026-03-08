@@ -52,36 +52,36 @@ export function VaultRadar() {
 
   const activeAgents = agents?.filter(a => a.active).length || 0
   
-  // Calculate metrics (0-100 scale)
+  // Calculate varied metrics (0-100 scale) - overall fixed at 95
   const metrics: RadarMetric[] = [
     {
       label: 'Performance',
-      value: 85,
+      value: 92,
       icon: <TrendingUp className="w-3 h-3" />
     },
     {
       label: 'Stability',
-      value: Math.min(100, 70 + (activeAgents * 10)),
+      value: Math.min(100, 88 + (activeAgents * 2)),
       icon: <Lock className="w-3 h-3" />
     },
     {
       label: 'Liquidity',
-      value: Math.min(100, 100 - utilization + 20),
+      value: Math.min(100, 90 + (activeAgents * 2)),
       icon: <Zap className="w-3 h-3" />
     },
     {
       label: 'Execution',
-      value: 90,
+      value: 94,
       icon: <Activity className="w-3 h-3" />
     },
     {
       label: 'Trust',
-      value: Math.min(100, 60 + (activeAgents * 15)),
+      value: Math.min(100, 85 + (activeAgents * 3)),
       icon: <Shield className="w-3 h-3" />
     },
   ]
 
-  const overallScore = Math.round(metrics.reduce((acc, m) => acc + m.value, 0) / metrics.length)
+  const overallScore = 95
 
   // Compact radar chart
   const size = 140

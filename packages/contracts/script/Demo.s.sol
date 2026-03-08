@@ -11,13 +11,14 @@ contract Demo is Script {
     function run() external {
         // adjust these addresses as appropriate for the network/demo
         address vaultAddr = vm.envAddress("VAULT_ADDRESS");
-        address keeper = vm.envAddress("KEEPER_ADDRESS");
-        address investor = vm.addr(100);
+        uint256 deployerPk = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        address deployer = vm.addr(deployerPk);
+        address investor = deployer; // Use deployer as investor for demo
 
         BondCreditVault vault = BondCreditVault(vaultAddr);
         IERC20 usdc = IERC20(vault.asset());
 
-        vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
+        vm.startBroadcast(deployerPk);
 
         // ensure investor has some USDC (if using a mock token)
         if (address(usdc) == address(0)) revert();
@@ -25,21 +26,16 @@ contract Demo is Script {
         try MockUSDC(address(usdc)).mint(investor, 1_000_000e6) {} catch {}
 
         // investor interaction
-        vm.startPrank(investor);
         usdc.approve(address(vault), type(uint256).max);
         uint256 shares = vault.deposit(100_000e6, investor);
         console.log("deposited shares", shares);
-        vm.stopPrank();
 
         // keeper sync & withdrawal demonstration
-        vm.prank(keeper);
+        vault.setKeeper(deployer); // Set deployer as keeper for demo
         vault.syncBalances([uint256(0),0,0]);
 
-        vm.startPrank(investor);
         vault.requestWithdraw(10_000e6);
-        vm.stopPrank();
 
-        vm.prank(keeper);
         vault.completeWithdrawal(investor, 0);
 
         vm.stopBroadcast();

@@ -3,11 +3,32 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { ArrowRight, Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
+import { ArrowRight, Loader2, RefreshCw, AlertTriangle, Shield, Zap } from 'lucide-react'
 import { VAULT_ADDRESS, VAULT_ABI, USDC_ADDRESS, USDC_ABI } from '@/lib/contracts'
 import { formatNumber } from '@/lib/utils'
 
 const USDC_DECIMALS = 6
+
+const TRANCHES = {
+  senior: {
+    name: 'Senior',
+    apy: 3.96,
+    description: 'Guaranteed yield',
+    risk: 'Low',
+    icon: Shield,
+    color: 'accent',
+    allocation: 'Lending strategies',
+  },
+  junior: {
+    name: 'Junior',
+    apy: 12.0,
+    description: 'Open cap yield',
+    risk: 'Medium',
+    icon: Zap,
+    color: 'warning',
+    allocation: 'Full strategy mix',
+  },
+}
 
 // Vault ABI with syncBalances function
 const VAULT_FULL_ABI = [
@@ -49,6 +70,7 @@ const validateAddress = (addr: string, name: string): `0x${string}` => {
 export function DepositForm() {
   const { address, isConnected } = useAccount()
   const [amount, setAmount] = useState('')
+  const [tranche, setTranche] = useState<'senior' | 'junior'>('senior')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle')
   
@@ -124,6 +146,8 @@ export function DepositForm() {
   const parsedAmount = amount ? parseUnits(amount, USDC_DECIMALS) : BigInt(0)
   const needsApproval = allowance !== undefined && parsedAmount > (allowance as bigint)
   
+  const selectedTranche = TRANCHES[tranche]
+
   const handleApprove = () => {
     if (!amount) return
     try {
@@ -155,7 +179,7 @@ export function DepositForm() {
     try {
       const vaultAddr = validateAddress(VAULT_ADDRESS, 'VAULT_ADDRESS')
       
-      console.log('Depositing to vault:', { vaultAddr, amount: parseUnits(amount, USDC_DECIMALS).toString(), receiver: address })
+      console.log('Depositing to vault:', { vaultAddr, amount: parseUnits(amount, USDC_DECIMALS).toString(), receiver: address, tranche })
       
       deposit({
         address: vaultAddr,
@@ -244,15 +268,63 @@ export function DepositForm() {
         </div>
       )}
       
-      {/* Sync Status Info */}
-      {lastSync && (
-        <div className="flex items-center justify-between text-xs text-text-muted">
-          <span>Last vault sync: {timeSinceSync !== null ? `${timeSinceSync}h ago` : 'Unknown'}</span>
-          <span className={isSyncStale ? 'text-warning' : 'text-accent'}>
-            {isSyncStale ? 'Sync required' : 'Sync active'}
-          </span>
+      {/* Tranche Selection */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-text-secondary">Select Tranche</label>
+        <div className="grid grid-cols-2 gap-3">
+          {(['senior', 'junior'] as const).map((key) => {
+            const t = TRANCHES[key]
+            const Icon = t.icon
+            const isSelected = tranche === key
+            
+            return (
+              <button
+                key={key}
+                onClick={() => setTranche(key)}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  isSelected
+                    ? key === 'senior'
+                      ? 'bg-accent/10 border-accent/30'
+                      : 'bg-warning/10 border-warning/30'
+                    : 'bg-surface border-border hover:border-accent/20'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className={`w-4 h-4 ${key === 'senior' ? 'text-accent' : 'text-warning'}`} />
+                  <span className="font-semibold text-sm">{t.name}</span>
+                </div>
+                <div className={`text-2xl font-bold font-mono ${key === 'senior' ? 'text-accent' : 'text-warning'}`}>
+                  {t.apy.toFixed(2)}%
+                </div>
+                <div className="text-xs text-text-secondary mt-1">{t.description}</div>
+              </button>
+            )
+          })}
         </div>
-      )}
+        
+        {/* Tranche Info */}
+        <div className={`p-3 rounded-lg text-sm ${
+          tranche === 'senior' ? 'bg-accent/10 border border-accent/20' : 'bg-warning/10 border border-warning/20'
+        }`}>
+          {tranche === 'senior' ? (
+            <div className="flex items-start gap-2">
+              <Shield className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-accent font-medium">Guaranteed 3.96% APY</p>
+                <p className="text-text-secondary text-xs">Principal protected • Fixed yield • Lower risk</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              <Zap className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-warning font-medium">Up to 12% APY (variable)</p>
+                <p className="text-text-secondary text-xs">Higher potential returns • Variable yield • Medium risk</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       
       {/* Amount Input */}
       <div className="space-y-2">
@@ -281,12 +353,23 @@ export function DepositForm() {
         </div>
         <div className="flex justify-between text-xs text-text-muted">
           <span>Balance: {balanceFormatted} USDC</span>
+          <span>Min: $100</span>
         </div>
       </div>
       
       {/* Preview */}
       {previewShares && amount && !isStaleError && (
         <div className="bg-surface-hover rounded-lg p-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-text-secondary">Tranche</span>
+            <span className="font-medium">{selectedTranche.name}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-text-secondary">Expected APY</span>
+            <span className={`font-mono font-medium ${tranche === 'senior' ? 'text-accent' : 'text-warning'}`}>
+              {selectedTranche.apy}%
+            </span>
+          </div>
           <div className="flex justify-between text-sm">
             <span className="text-text-secondary">You will receive</span>
             <span className="font-mono text-text-primary">
@@ -330,7 +413,7 @@ export function DepositForm() {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                {isSyncStale ? 'Vault Sync Required' : 'Deposit'}
+                {isSyncStale ? 'Vault Sync Required' : `Deposit to ${selectedTranche.name}`}
                 {!isSyncStale && <ArrowRight size={18} />}
               </span>
             )}
