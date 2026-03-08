@@ -1,15 +1,51 @@
-import { Metadata } from 'next'
+'use client'
+
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles, Shield, Zap, TrendingUp, Bot, Wallet } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Bond Credit Vault | AI-Powered Yield Optimization',
-  description: 'Institutional-grade credit vault powered by AI agents for optimized yield on Arbitrum',
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
 }
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen">
+    <motion.div 
+      className="min-h-screen"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-32">
         {/* Background Effects */}
@@ -21,7 +57,7 @@ export default function LandingPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           {/* Badge */}
-          <div className="flex justify-center mb-8">
+          <motion.div variants={itemVariants} className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-medium">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
@@ -29,10 +65,10 @@ export default function LandingPage() {
               </span>
               Live on Arbitrum Sepolia
             </div>
-          </div>
+          </motion.div>
 
           {/* Main Headline */}
-          <div className="text-center max-w-4xl mx-auto mb-12">
+          <motion.div variants={itemVariants} className="text-center max-w-4xl mx-auto mb-12">
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
               <span className="bg-gradient-to-r from-white via-white to-text-secondary bg-clip-text text-transparent">
                 Your Capital,
@@ -46,10 +82,10 @@ export default function LandingPage() {
               Deposit USDC and let our intelligent agents optimize your yield across 
               Aave, Pendle, and Morpho — automatically rebalancing for maximum returns.
             </p>
-          </div>
+          </motion.div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
             <Link
               href="/dashboard"
               className="group flex items-center gap-3 px-8 py-4 bg-accent text-white rounded-2xl font-semibold text-lg hover:bg-accent/90 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-accent/25"
@@ -65,10 +101,23 @@ export default function LandingPage() {
               <TrendingUp className="w-5 h-5" />
               View Analytics
             </Link>
-          </div>
+          </motion.div>
 
           {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                  delayChildren: 0.4,
+                },
+              },
+            }}
+          >
             <FeatureCard
               icon={Bot}
               title="AI-Powered Agents"
@@ -84,21 +133,38 @@ export default function LandingPage() {
               title="Instant Liquidity"
               description="No lock-up periods. Withdraw your funds anytime with zero exit fees."
             />
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 border-t border-border/40">
+      <motion.section 
+        className="py-24 border-t border-border/40"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={containerVariants}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div variants={itemVariants} className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">How It Works</h2>
             <p className="text-text-secondary max-w-xl mx-auto">
               Simple three-step process to start earning optimized yield
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                  delayChildren: 0.1,
+                },
+              },
+            }}
+          >
             <StepCard
               number="01"
               title="Deposit USDC"
@@ -114,21 +180,38 @@ export default function LandingPage() {
               title="Earn & Relax"
               description="Watch your balance grow. Withdraw anytime with no penalties or lock-ups."
             />
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Supported Protocols */}
-      <section className="py-24 border-t border-border/40">
+      <motion.section 
+        className="py-24 border-t border-border/40"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={containerVariants}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <motion.div variants={itemVariants} className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Supported Protocols</h2>
             <p className="text-text-secondary max-w-xl mx-auto">
               Capital deployed across battle-tested DeFi protocols
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                  delayChildren: 0.1,
+                },
+              },
+            }}
+          >
             <ProtocolCard
               name="Aave V3"
               description="Conservative lending with deep liquidity and proven track record."
@@ -144,14 +227,23 @@ export default function LandingPage() {
               description="Optimized lending with improved rates through peer-to-peer matching."
               risk="Low Risk"
             />
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* CTA Section */}
-      <section className="py-24 border-t border-border/40">
+      <motion.section 
+        className="py-24 border-t border-border/40"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={containerVariants}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent/20 via-surface to-surface border border-border p-12 text-center">
+          <motion.div 
+            variants={itemVariants}
+            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent/20 via-surface to-surface border border-border p-12 text-center"
+          >
             <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
             <div className="relative">
               <Sparkles className="w-12 h-12 text-accent mx-auto mb-6" />
@@ -170,9 +262,9 @@ export default function LandingPage() {
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Footer Links */}
       <footer className="py-12 border-t border-border/40">
@@ -204,7 +296,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+    </motion.div>
   )
 }
 
@@ -218,13 +310,16 @@ function FeatureCard({
   description: string 
 }) {
   return (
-    <div className="group p-6 rounded-2xl bg-surface/50 border border-border hover:border-accent/30 transition-all hover:bg-surface">
+    <motion.div 
+      variants={cardVariants}
+      className="group p-6 rounded-2xl bg-surface/50 border border-border hover:border-accent/30 transition-all hover:bg-surface"
+    >
       <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-4 group-hover:bg-accent/20 transition-colors">
         <Icon className="w-6 h-6 text-accent" />
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
-    </div>
+    </motion.div>
   )
 }
 
@@ -238,13 +333,16 @@ function StepCard({
   description: string 
 }) {
   return (
-    <div className="relative p-6 rounded-2xl bg-surface/30 border border-border">
+    <motion.div 
+      variants={cardVariants}
+      className="relative p-6 rounded-2xl bg-surface/30 border border-border"
+    >
       <span className="text-4xl font-bold text-accent/20 absolute top-4 right-4">
         {number}
       </span>
       <h3 className="text-lg font-semibold mb-2 relative">{title}</h3>
       <p className="text-text-secondary text-sm leading-relaxed relative">{description}</p>
-    </div>
+    </motion.div>
   )
 }
 
@@ -258,7 +356,10 @@ function ProtocolCard({
   risk: string
 }) {
   return (
-    <div className="p-6 rounded-2xl bg-surface/50 border border-border hover:border-accent/30 transition-all">
+    <motion.div 
+      variants={cardVariants}
+      className="p-6 rounded-2xl bg-surface/50 border border-border hover:border-accent/30 transition-all"
+    >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold">{name}</h3>
         <span className={`text-xs px-2 py-1 rounded-full ${
@@ -270,6 +371,6 @@ function ProtocolCard({
         </span>
       </div>
       <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
-    </div>
+    </motion.div>
   )
 }
