@@ -3,17 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { History, Menu, X, LayoutDashboard, TrendingUp, Crown, FileText, Vault } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { BondCreditLogo } from '@/components/icons/BondCreditLogo'
 
 const navItems = [
-  { href: '/', label: 'Home', icon: Vault },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/vault-analytics', label: 'Analytics', icon: TrendingUp },
-  { href: '/report', label: 'Report', icon: FileText },
-  { href: '/transactions', label: 'History', icon: History },
-  { href: '/admin', label: 'Admin', icon: Crown },
+  { href: '/', label: 'Home' },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/vault-analytics', label: 'Analytics' },
+  { href: '/report', label: 'Report' },
+  { href: '/transactions', label: 'History' },
+  { href: '/admin', label: 'Admin' },
 ]
 
 export function Navigation() {
@@ -30,19 +30,17 @@ export function Navigation() {
 
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
-              const Icon = item.icon
               const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     isActive
                       ? 'bg-accent/10 text-accent'
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               )
@@ -68,20 +66,18 @@ export function Navigation() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-border/40 py-4 space-y-2">
             {navItems.map((item) => {
-              const Icon = item.icon
               const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
+                  className={`block px-4 py-3 rounded-lg text-sm font-medium ${
                     isActive
                       ? 'bg-accent/10 text-accent'
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
                   {item.label}
                 </Link>
               )

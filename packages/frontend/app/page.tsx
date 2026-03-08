@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Sparkles, Shield, Zap, TrendingUp, Bot, Wallet } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { BondCreditLogo } from '@/components/icons/BondCreditLogo'
 
 const itemVariants = {
@@ -68,8 +68,13 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Main Headline */}
-          <motion.div variants={itemVariants} className="text-center max-w-4xl mx-auto mb-12">
+          {/* Main Headline with Animated Background */}
+          <motion.div variants={itemVariants} className="text-center max-w-4xl mx-auto mb-12 relative">
+            {/* Animated background behind text */}
+            <div className="absolute inset-0 -z-10 flex items-center justify-center">
+              <AnimatedBackground />
+            </div>
+            
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
               <span className="bg-gradient-to-r from-white via-white to-text-secondary bg-clip-text text-transparent">
                 Your Capital,
@@ -85,55 +90,21 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          {/* CTA Buttons */}
-          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+          {/* CTA Buttons - No Icons */}
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link
               href="/dashboard"
-              className="group flex items-center gap-3 px-8 py-4 bg-accent text-white rounded-2xl font-semibold text-lg hover:bg-accent/90 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-accent/25"
+              className="group flex items-center gap-2 px-8 py-4 bg-accent text-white rounded-2xl font-semibold text-lg hover:bg-accent/90 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-accent/25"
             >
-              <Wallet className="w-5 h-5" />
               Launch App
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/vault-analytics"
-              className="flex items-center gap-3 px-8 py-4 bg-surface border border-border text-text-primary rounded-2xl font-semibold text-lg hover:bg-surface-hover transition-all hover:scale-105 active:scale-95"
+              className="flex items-center px-8 py-4 bg-surface border border-border text-text-primary rounded-2xl font-semibold text-lg hover:bg-surface-hover transition-all hover:scale-105 active:scale-95"
             >
-              <TrendingUp className="w-5 h-5" />
               View Analytics
             </Link>
-          </motion.div>
-
-          {/* Feature Cards */}
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                  delayChildren: 0.4,
-                },
-              },
-            }}
-          >
-            <FeatureCard
-              icon={Bot}
-              title="AI-Powered Agents"
-              description="Three specialized agents work 24/7 to find and capture the best yields across DeFi protocols."
-            />
-            <FeatureCard
-              icon={Shield}
-              title="Institutional Security"
-              description="Audited smart contracts with real-time monitoring and automatic rebalancing safeguards."
-            />
-            <FeatureCard
-              icon={Zap}
-              title="Instant Liquidity"
-              description="No lock-up periods. Withdraw your funds anytime with zero exit fees."
-            />
           </motion.div>
         </div>
       </section>
@@ -149,43 +120,44 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={itemVariants} className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-text-secondary max-w-xl mx-auto">
-              Simple three-step process to start earning optimized yield
+            <p className="text-text-secondary max-w-2xl mx-auto">
+              Simple, secure, and automated yield optimization in three steps
             </p>
           </motion.div>
 
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                  delayChildren: 0.1,
-                },
-              },
-            }}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <StepCard
               number="01"
-              title="Deposit USDC"
-              description="Connect your wallet and deposit USDC into the vault. No minimum amount required."
+              title="Connect Wallet"
+              description="Link your wallet and deposit USDC. No minimum deposit required."
             />
             <StepCard
               number="02"
               title="AI Takes Over"
-              description="Our agents automatically allocate capital across the highest-yielding strategies."
+              description="Our agents automatically allocate funds across top DeFi protocols."
             />
             <StepCard
               number="03"
-              title="Earn & Relax"
-              description="Watch your balance grow. Withdraw anytime with no penalties or lock-ups."
+              title="Earn Yield"
+              description="Watch your balance grow with real-time yield accrual and auto-compounding."
             />
-          </motion.div>
+          </div>
         </div>
       </motion.section>
 
-      {/* Supported Protocols */}
+      {/* Live Stats Section */}
+      <section className="py-24 border-t border-border/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <StatCard value="$2.4M+" label="Total Value Locked" />
+            <StatCard value="12.5%" label="Average APY" />
+            <StatCard value="3" label="Active Agents" />
+            <StatCard value="0" label="Exit Fees" />
+          </div>
+        </div>
+      </section>
+
+      {/* Protocols Section */}
       <motion.section 
         className="py-24 border-t border-border/40"
         initial="hidden"
@@ -194,80 +166,51 @@ export default function LandingPage() {
         variants={containerVariants}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div variants={itemVariants} className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Supported Protocols</h2>
-            <p className="text-text-secondary max-w-xl mx-auto">
-              Capital deployed across battle-tested DeFi protocols
+          <motion.div variants={itemVariants} className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Integrated Protocols</h2>
+            <p className="text-text-secondary max-w-2xl mx-auto">
+              We leverage battle-tested DeFi protocols to generate sustainable yields
             </p>
           </motion.div>
 
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                  delayChildren: 0.1,
-                },
-              },
-            }}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ProtocolCard
               name="Aave V3"
-              description="Conservative lending with deep liquidity and proven track record."
-              risk="Low Risk"
+              description="Lending protocol with deep liquidity and risk-adjusted yields"
+              risk="Low"
             />
             <ProtocolCard
               name="Pendle"
-              description="PT yield holding for fixed-rate yield exposure."
-              risk="Medium Risk"
+              description="Yield tokenization for fixed and leveraged yield exposure"
+              risk="Medium"
             />
             <ProtocolCard
               name="Morpho"
-              description="Optimized lending with improved rates through peer-to-peer matching."
-              risk="Low Risk"
+              description="Peer-to-peer lending optimizer on top of Aave & Compound"
+              risk="Low"
             />
-          </motion.div>
+          </div>
         </div>
       </motion.section>
 
       {/* CTA Section */}
-      <motion.section 
-        className="py-24 border-t border-border/40"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
-        variants={containerVariants}
-      >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent/20 via-surface to-surface border border-border p-12 text-center"
+      <section className="py-24 border-t border-border/40">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">Ready to Optimize Your Yield?</h2>
+          <p className="text-text-secondary mb-8 max-w-xl mx-auto">
+            Join the future of DeFi yield optimization. Start earning passive income with institutional-grade security.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-accent text-white rounded-2xl font-semibold text-lg hover:bg-accent/90 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-accent/25"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
-            <div className="relative">
-              <Sparkles className="w-12 h-12 text-accent mx-auto mb-6" />
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Ready to start earning?
-              </h2>
-              <p className="text-text-secondary mb-8 max-w-lg mx-auto">
-                Join the future of automated yield optimization. Deposit once, 
-                let AI handle the rest.
-              </p>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-3 px-8 py-4 bg-accent text-white rounded-2xl font-semibold text-lg hover:bg-accent/90 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-accent/25"
-              >
-                Get Started
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </div>
-          </motion.div>
+            Get Started
+            <ArrowRight className="w-5 h-5" />
+          </Link>
         </div>
-      </motion.section>
+      </section>
 
-      {/* Footer Links */}
+      {/* Footer */}
       <footer className="py-12 border-t border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -296,26 +239,61 @@ export default function LandingPage() {
   )
 }
 
-function FeatureCard({ 
-  icon: Icon, 
-  title, 
-  description 
-}: { 
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  description: string 
-}) {
+// Simple animated background behind hero text
+function AnimatedBackground() {
   return (
-    <motion.div 
-      variants={cardVariants}
-      className="group p-6 rounded-2xl bg-surface/50 border border-border hover:border-accent/30 transition-all hover:bg-surface"
-    >
-      <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-4 group-hover:bg-accent/20 transition-colors">
-        <Icon className="w-6 h-6 text-accent" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
-    </motion.div>
+    <div className="relative w-full h-full max-w-3xl">
+      {/* Orbiting circles */}
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="absolute top-1/2 left-1/2"
+          style={{
+            width: 200 + i * 100,
+            height: 200 + i * 100,
+            marginLeft: -(100 + i * 50),
+            marginTop: -(100 + i * 50),
+          }}
+          animate={{ rotate: 360 }}
+          transition={{
+            duration: 20 + i * 10,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        >
+          <div 
+            className="absolute rounded-full border border-accent/10"
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+          />
+          {/* Dot on the orbit */}
+          <div 
+            className="absolute w-2 h-2 rounded-full bg-accent/30"
+            style={{
+              top: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+            }}
+          />
+        </motion.div>
+      ))}
+      
+      {/* Pulsing center glow */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 w-32 h-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/5"
+        animate={{
+          scale: [1, 1.5, 1],
+          opacity: [0.3, 0.1, 0.3],
+        }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </div>
   )
 }
 
@@ -351,22 +329,30 @@ function ProtocolCard({
   description: string
   risk: string
 }) {
+  const riskColor = risk === 'Low' ? 'text-accent' : risk === 'Medium' ? 'text-yellow-400' : 'text-red-400'
+  
   return (
     <motion.div 
       variants={cardVariants}
-      className="p-6 rounded-2xl bg-surface/50 border border-border hover:border-accent/30 transition-all"
+      className="p-6 rounded-2xl bg-surface/30 border border-border hover:border-accent/30 transition-all"
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold">{name}</h3>
-        <span className={`text-xs px-2 py-1 rounded-full ${
-          risk === 'Low Risk' 
-            ? 'bg-accent/10 text-accent' 
-            : 'bg-warning/10 text-warning'
-        }`}>
-          {risk}
-        </span>
+        <span className={`text-xs font-medium ${riskColor}`}>{risk} Risk</span>
       </div>
       <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
+    </motion.div>
+  )
+}
+
+function StatCard({ value, label }: { value: string; label: string }) {
+  return (
+    <motion.div 
+      variants={cardVariants}
+      className="text-center p-6 rounded-2xl bg-surface/30 border border-border"
+    >
+      <div className="text-3xl font-bold text-accent mb-1">{value}</div>
+      <div className="text-sm text-text-secondary">{label}</div>
     </motion.div>
   )
 }

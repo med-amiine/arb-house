@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 
@@ -11,7 +11,8 @@ import { YieldEstimate } from '@/components/vault/YieldEstimate'
 import { DepositForm } from '@/components/deposit/DepositForm'
 import { WithdrawForm } from '@/components/withdraw/WithdrawForm'
 import { Dialog } from '@/components/ui/Dialog'
-import { ArrowDownCircle, ArrowUpCircle, TrendingUp, CheckCircle2, X } from 'lucide-react'
+import { NotificationsContainer, type Notification } from '@/components/ui/Notifications'
+import { ArrowDownCircle, ArrowUpCircle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 const itemVariants = {
@@ -36,13 +37,7 @@ const containerVariants = {
   },
 }
 
-interface Notification {
-  id: string
-  type: 'success'
-  title: string
-  message: string
-  txHash?: string
-}
+
 
 export default function DashboardPage() {
   const [isDepositOpen, setIsDepositOpen] = useState(false)
@@ -50,16 +45,24 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'position' | 'estimate'>('position')
   const [notifications, setNotifications] = useState<Notification[]>([])
 
-  // Show notification helper
+  // Show notification helper with deduplication
   const showNotification = (notification: Omit<Notification, 'id'>) => {
+    // Check for duplicates (same title and message)
+    const isDuplicate = notifications.some(n => 
+      n.title === notification.title && 
+      n.message === notification.message &&
+      n.txHash === notification.txHash
+    )
+    if (isDuplicate) return
+    
     const id = Math.random().toString(36).substring(7)
     const newNotification = { ...notification, id }
     setNotifications(prev => [...prev, newNotification])
     
-    // Remove after 3 seconds
+    // Remove after 5 seconds (increased from 3 to give more time to read)
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id))
-    }, 3000)
+    }, 5000)
   }
 
   // Handle deposit success - matches Demo.s.sol logging
@@ -70,17 +73,15 @@ export default function DashboardPage() {
     console.log('Received shares:', shares, 'BCV')
     console.log('Share price:', sharePrice, 'USDC per BCV (scaled)')
     
+    // Close modal immediately
+    setIsDepositOpen(false)
+    
     showNotification({
       type: 'success',
       title: '=== DEPOSIT ===',
       message: `Deposited: ${deposited} USDC\nReceived shares: ${shares} BCV\nShare price: ${sharePrice} USDC per BCV (scaled)`,
       txHash,
     })
-    
-    // Close modal after 4 seconds
-    setTimeout(() => {
-      setIsDepositOpen(false)
-    }, 4000)
   }
 
   // Handle approval success - matches Demo.s.sol logging
@@ -105,17 +106,15 @@ export default function DashboardPage() {
     console.log('Assets owed:', assets, 'USDC')
     console.log('Request ID:', requestId)
     
+    // Close modal immediately
+    setIsWithdrawOpen(false)
+    
     showNotification({
       type: 'success',
       title: '=== WITHDRAWAL REQUEST ===',
       message: `Requested withdrawal of: ${shares} BCV shares\nAssets owed: ${assets} USDC\nRequest ID: ${requestId}`,
       txHash,
     })
-    
-    // Close modal after 4 seconds
-    setTimeout(() => {
-      setIsWithdrawOpen(false)
-    }, 4000)
   }
 
   return (
@@ -125,48 +124,11 @@ export default function DashboardPage() {
       animate="visible"
       variants={containerVariants}
     >
-      {/* Notifications - Outside modals, fixed position */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        <AnimatePresence>
-          {notifications.map((notification) => (
-            <motion.div
-              key={notification.id}
-              initial={{ opacity: 0, x: 100, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.9 }}
-              className="bg-surface border border-accent/30 rounded-xl p-4 shadow-lg min-w-[320px] max-w-md"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-4 h-4 text-accent" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-mono font-semibold text-sm text-accent">{notification.title}</h4>
-                  <div className="text-text-secondary text-xs mt-1 font-mono whitespace-pre-line">
-                    {notification.message}
-                  </div>
-                  {notification.txHash && (
-                    <a
-                      href={`https://sepolia.arbiscan.io/tx/${notification.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-accent hover:underline mt-2 inline-block font-mono"
-                    >
-                      View on Arbiscan →
-                    </a>
-                  )}
-                </div>
-                <button
-                  onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
-                  className="text-text-muted hover:text-text-primary transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      {/* Notifications - Portalled to body, above all modals */}
+      <NotificationsContainer 
+        notifications={notifications}
+        onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section - Compact */}

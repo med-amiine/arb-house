@@ -7,7 +7,7 @@ import { useAccount } from 'wagmi'
 import { formatNumber } from '@/lib/utils'
 import { ArrowDownLeft, ArrowUpRight, Clock, ExternalLink, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { DemoDataBadge } from '@/components/ui/LoadingState'
+
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -142,7 +142,9 @@ export default function TransactionsPage() {
           </div>
           
           {isUsingMockData && showAll && (
-            <DemoDataBadge count={transactions.length} />
+            <span className="px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400 font-medium">
+              DEMO DATA
+            </span>
           )}
         </motion.div>
 

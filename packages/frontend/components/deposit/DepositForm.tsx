@@ -56,8 +56,9 @@ export function DepositForm({ onSuccess, onApprovalSuccess }: DepositFormProps) 
   const [tranche, setTranche] = useState<'senior' | 'junior'>('senior')
   const [validationError, setValidationError] = useState<string | null>(null)
   
-  // Track which approval hash we've already notified for to prevent duplicates
+  // Track which hashes we've already notified for to prevent duplicates
   const [lastNotifiedApprovalHash, setLastNotifiedApprovalHash] = useState<string | null>(null)
+  const [lastNotifiedDepositHash, setLastNotifiedDepositHash] = useState<string | null>(null)
   
   // Validate addresses on mount
   useEffect(() => {
@@ -140,8 +141,10 @@ export function DepositForm({ onSuccess, onApprovalSuccess }: DepositFormProps) 
   
   // Handle successful deposit
   useEffect(() => {
-    if (isDepositSuccess && depositHash) {
+    if (isDepositSuccess && depositHash && depositHash !== lastNotifiedDepositHash) {
       console.log('Deposit confirmed:', depositHash)
+      setLastNotifiedDepositHash(depositHash)
+      
       const depositAmount = parseUnits(amount, USDC_DECIMALS)
       const shares = previewShares || depositAmount
       const sharePrice = shares > BigInt(0) ? Number(depositAmount * BigInt(1000000) / shares) : 1000000
@@ -157,14 +160,12 @@ export function DepositForm({ onSuccess, onApprovalSuccess }: DepositFormProps) 
       refetchAllowance()
       refetchBalance()
       
-      // Refresh all vault data and user balances
-      setTimeout(async () => {
-        await refreshVault()
-        await refetchBalance()
-        await refetchAllowance()
-      }, 2000)
+      // Refresh all vault data and user balances immediately
+      refreshVault()
+      refetchBalance()
+      refetchAllowance()
     }
-  }, [isDepositSuccess, depositHash, refetchAllowance, refetchBalance, onSuccess, amount, previewShares])
+  }, [isDepositSuccess, depositHash, lastNotifiedDepositHash, refetchAllowance, refetchBalance, onSuccess, amount, previewShares])
   
   // Handle successful approval - separate effect to track hash
   useEffect(() => {
@@ -393,31 +394,31 @@ export function DepositForm({ onSuccess, onApprovalSuccess }: DepositFormProps) 
         </div>
       </div>
       
-      {/* Preview */}
-      {previewShares && amount && !isStaleError && (
-        <div className="bg-surface-hover rounded-lg p-4 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">Tranche</span>
-            <span className="font-medium">{selectedTranche.name}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">Expected APY</span>
-            <span className={`font-mono font-medium ${tranche === 'senior' ? 'text-accent' : 'text-warning'}`}>
-              {selectedTranche.apy}%
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">You will receive</span>
-            <span className="font-mono text-text-primary">
-              {formatNumber(Number(formatUnits(previewShares as bigint, USDC_DECIMALS)))} BCV
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">Share price</span>
-            <span className="font-mono text-text-primary">~$1.00</span>
-          </div>
+      {/* Preview - Always rendered to prevent layout shift */}
+      <div className="bg-surface-hover rounded-lg p-4 space-y-2 min-h-[120px]">
+        <div className="flex justify-between text-sm">
+          <span className="text-text-secondary">Tranche</span>
+          <span className="font-medium">{selectedTranche.name}</span>
         </div>
-      )}
+        <div className="flex justify-between text-sm">
+          <span className="text-text-secondary">Expected APY</span>
+          <span className={`font-mono font-medium ${tranche === 'senior' ? 'text-accent' : 'text-warning'}`}>
+            {selectedTranche.apy}%
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-text-secondary">You will receive</span>
+          <span className="font-mono text-text-primary">
+            {previewShares && amount && !isStaleError
+              ? `${formatNumber(Number(formatUnits(previewShares as bigint, USDC_DECIMALS)))} BCV`
+              : '—'}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-text-secondary">Share price</span>
+          <span className="font-mono text-text-primary">~$1.00</span>
+        </div>
+      </div>
       
       {/* Action Button */}
       <div className="space-y-3">

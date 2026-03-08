@@ -25,6 +25,9 @@ export function WithdrawForm({ onSuccess }: WithdrawFormProps) {
   const { address, isConnected } = useAccount()
   const { refresh: refreshVault } = useVaultData()
   const [amount, setAmount] = useState('')
+  
+  // Track which hash we've already notified for to prevent duplicates
+  const [lastNotifiedHash, setLastNotifiedHash] = useState<string | null>(null)
 
   // Read BCV balance - cached, no auto-refetch
   const { data: bcvBalance, refetch: refetchBalance } = useReadContract({
@@ -90,8 +93,10 @@ export function WithdrawForm({ onSuccess }: WithdrawFormProps) {
 
   // Handle successful request
   useEffect(() => {
-    if (isConfirmed && withdrawHash) {
+    if (isConfirmed && withdrawHash && withdrawHash !== lastNotifiedHash) {
       console.log('Withdrawal requested:', withdrawHash)
+      setLastNotifiedHash(withdrawHash)
+      
       const sharesFormatted = amount ? formatNumber(Number(amount)) : '0'
       const assetsFormatted = previewAssets ? formatNumber(Number(formatUnits(previewAssets as bigint, USDC_DECIMALS))) : '0'
       
@@ -108,15 +113,13 @@ export function WithdrawForm({ onSuccess }: WithdrawFormProps) {
       onSuccess?.(withdrawHash, sharesFormatted, assetsFormatted, requestId)
       setAmount('')
       
-      // Refresh all vault data
-      setTimeout(async () => {
-        await refreshVault()
-        await refetchBalance()
-        await refetchPending()
-        await refetchQueue()
-      }, 2000)
+      // Refresh all vault data immediately
+      refreshVault()
+      refetchBalance()
+      refetchPending()
+      refetchQueue()
     }
-  }, [isConfirmed, withdrawHash, refetchBalance, refetchPending, refetchQueue, onSuccess, amount, previewAssets, withdrawalQueue])
+  }, [isConfirmed, withdrawHash, lastNotifiedHash, refetchBalance, refetchPending, refetchQueue, onSuccess, amount, previewAssets, withdrawalQueue])
 
   const handleRequestWithdraw = () => {
     if (!amount) return
@@ -237,21 +240,21 @@ export function WithdrawForm({ onSuccess }: WithdrawFormProps) {
         </div>
       </div>
 
-      {/* Preview */}
-      {previewAssets && amount && (
-        <div className="bg-surface-hover rounded-lg p-4 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">You will receive</span>
-            <span className="font-mono text-text-primary">
-              {formatNumber(Number(formatUnits(previewAssets as bigint, USDC_DECIMALS)))} USDC
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">Current NAV</span>
-            <span className="font-mono text-text-primary">~$1.0245/share</span>
-          </div>
+      {/* Preview - Always rendered to prevent layout shift */}
+      <div className="bg-surface-hover rounded-lg p-4 space-y-2 min-h-[68px]">
+        <div className="flex justify-between text-sm">
+          <span className="text-text-secondary">You will receive</span>
+          <span className="font-mono text-text-primary">
+            {previewAssets && amount
+              ? `${formatNumber(Number(formatUnits(previewAssets as bigint, USDC_DECIMALS)))} USDC`
+              : '—'}
+          </span>
         </div>
-      )}
+        <div className="flex justify-between text-sm">
+          <span className="text-text-secondary">Current NAV</span>
+          <span className="font-mono text-text-primary">~$1.0245/share</span>
+        </div>
+      </div>
 
       {/* Info Box */}
       <div className="flex gap-3 bg-surface-hover rounded-lg p-4">

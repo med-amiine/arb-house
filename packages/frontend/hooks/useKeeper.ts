@@ -134,11 +134,16 @@ export function useKeeperData() {
       const response = await fetch(`${apiUrl}/vault/transactions?limit=${limit}`)
       if (!response.ok) throw new Error('Failed to fetch transactions')
       const data = await response.json()
-      // Use mock data if API returns empty or too few transactions
-      const hasRealData = data.length >= 3
+      // Only use mock data if API returns completely empty
+      // If we have any real data, use it (even if just 1-2 transactions)
+      const hasRealData = data.length > 0
       setIsUsingMockData(!hasRealData)
-      const transactionsWithFallback = getTransactionsWithFallback(data, 3)
-      setTransactions(transactionsWithFallback)
+      if (hasRealData) {
+        setTransactions(data)
+      } else {
+        // Only fall back to mock if absolutely no real data
+        setTransactions(MOCK_TRANSACTIONS)
+      }
     } catch (err) {
       console.error('Error fetching transactions:', err)
       // Use mock data on error
@@ -255,29 +260,41 @@ export function useUserTransactions(userAddress?: string) {
   const { apiUrl } = useKeeperConfig()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isUsingMockData, setIsUsingMockData] = useState(false)
 
   useEffect(() => {
     if (!userAddress) return
 
     setIsLoading(true)
+    setIsUsingMockData(false)
     fetch(`${apiUrl}/vault/user/${userAddress}/transactions`)
       .then(res => res.json())
       .then(data => {
-        // Use mock data if API returns empty or too few transactions
-        const transactionsWithFallback = getTransactionsWithFallback(data, 3)
-        setTransactions(transactionsWithFallback)
+        // Only use mock data if API returns completely empty
+        if (data.length > 0) {
+          setTransactions(data)
+        } else {
+          // Fall back to mock data
+          setIsUsingMockData(true)
+          const userMockTransactions = MOCK_TRANSACTIONS.map(tx => ({
+            ...tx,
+            user: userAddress,
+          }))
+          setTransactions(userMockTransactions.slice(0, 3))
+        }
       })
       .catch((err) => {
         console.error('Error fetching user transactions:', err)
-        // Use mock data on error - filter to simulate user's transactions
+        // Use mock data on error
+        setIsUsingMockData(true)
         const userMockTransactions = MOCK_TRANSACTIONS.map(tx => ({
           ...tx,
-          user: userAddress, // Make them appear as user's transactions
+          user: userAddress,
         }))
         setTransactions(userMockTransactions.slice(0, 3))
       })
       .finally(() => setIsLoading(false))
   }, [userAddress, apiUrl])
 
-  return { transactions, isLoading }
+  return { transactions, isLoading, isUsingMockData }
 }

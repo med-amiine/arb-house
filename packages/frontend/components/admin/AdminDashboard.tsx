@@ -6,6 +6,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { formatUnits } from 'viem'
 import { WithdrawalProcessor } from './WithdrawalProcessor'
+import { AllocationManager } from './AllocationManager'
 import { 
   Shield, 
   Users, 
@@ -103,6 +104,11 @@ export function AdminDashboard() {
         />
       </motion.div>
       
+      {/* Bottom Row - Allocation Manager (full width) */}
+      <motion.div variants={cardVariants} className="lg:col-span-3">
+        <AllocationManager />
+      </motion.div>
+      
       {/* Bottom Row - Withdrawal Processor (full width) */}
       <motion.div variants={cardVariants} className="lg:col-span-3">
         <WithdrawalProcessor />
@@ -179,19 +185,29 @@ function EmergencyControls({ paused }: { paused?: boolean }) {
   )
 }
 
+// Target keeper address
+const TARGET_KEEPER = '0xD8CDe62aCB881329EBb4694f37314b7bBA77EbDe'
+
 // Keeper Management
 function KeeperManagement({ currentKeeper }: { currentKeeper?: string }) {
   const [newKeeper, setNewKeeper] = useState('')
-  const { writeContract, isPending } = useWriteContract()
+  const { writeContract, isPending, isSuccess, data: txHash } = useWriteContract()
+  
+  const isTargetKeeperSet = currentKeeper?.toLowerCase() === TARGET_KEEPER.toLowerCase()
   
   const handleUpdateKeeper = () => {
-    if (!newKeeper) return
+    const keeperToSet = newKeeper || TARGET_KEEPER
+    if (!keeperToSet) return
     writeContract({
       address: VAULT_ADDRESS,
       abi: VAULT_ABI,
       functionName: 'setKeeper',
-      args: [newKeeper as `0x${string}`],
+      args: [keeperToSet as `0x${string}`],
     })
+  }
+  
+  const handleSetTargetKeeper = () => {
+    setNewKeeper(TARGET_KEEPER)
   }
   
   return (
@@ -209,24 +225,45 @@ function KeeperManagement({ currentKeeper }: { currentKeeper?: string }) {
       <div className="mb-4">
         <p className="text-xs text-text-secondary mb-1">Current Keeper</p>
         <p className="font-mono text-sm truncate">{currentKeeper || 'Loading...'}</p>
+        {isTargetKeeperSet && (
+          <p className="text-xs text-accent mt-1 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            Target keeper is set
+          </p>
+        )}
       </div>
       
       <div className="space-y-3">
-        <input
-          type="text"
-          value={newKeeper}
-          onChange={(e) => setNewKeeper(e.target.value)}
-          placeholder="0x..."
-          className="input w-full text-sm"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newKeeper}
+            onChange={(e) => setNewKeeper(e.target.value)}
+            placeholder={TARGET_KEEPER}
+            className="input w-full text-sm"
+          />
+          <button
+            onClick={handleSetTargetKeeper}
+            disabled={isPending || isTargetKeeperSet}
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-50 whitespace-nowrap"
+          >
+            Set Default
+          </button>
+        </div>
         <button
           onClick={handleUpdateKeeper}
-          disabled={isPending || !newKeeper}
+          disabled={isPending || (!newKeeper && isTargetKeeperSet)}
           className="w-full py-2 px-4 bg-accent text-white rounded-lg font-medium hover:bg-accent/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Update Keeper
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : isSuccess ? <CheckCircle2 className="w-4 h-4" /> : null}
+          {isPending ? 'Updating...' : isSuccess ? 'Keeper Updated!' : 'Update Keeper'}
         </button>
+        
+        {isSuccess && txHash && (
+          <p className="text-xs text-accent text-center">
+            Transaction: {txHash.slice(0, 10)}...{txHash.slice(-8)}
+          </p>
+        )}
       </div>
     </div>
   )
