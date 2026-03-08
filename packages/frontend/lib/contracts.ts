@@ -6,6 +6,7 @@ export const USDC_ADDRESS = '0x3AD4869afcC42f5Ad199914d398b3172c576f413' as `0x$
 export const RPC_URL = 'https://arb-sepolia.g.alchemy.com/v2/7JENWA60Eynfh2ipu6KWZ'
 
 export const VAULT_ABI = [
+  // User functions
   {
     inputs: [{ name: 'assets', type: 'uint256' }, { name: 'receiver', type: 'address' }],
     name: 'deposit',
@@ -37,6 +38,13 @@ export const VAULT_ABI = [
   {
     inputs: [{ name: 'assets', type: 'uint256' }],
     name: 'previewDeposit',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'shares', type: 'uint256' }],
+    name: 'convertToAssets',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
@@ -75,6 +83,114 @@ export const VAULT_ABI = [
     inputs: [],
     name: 'totalSupply',
     outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // Owner functions
+  {
+    inputs: [],
+    name: 'pause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'unpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'newKeeper', type: 'address' }],
+    name: 'setKeeper',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'keeper',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'index', type: 'uint256' },
+      { name: 'adapter', type: 'address' },
+      { name: 'creditLimit', type: 'uint256' },
+    ],
+    name: 'updateAgent',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getAgentInfo',
+    outputs: [{ 
+      name: '', 
+      type: 'tuple[]',
+      components: [
+        { name: 'adapter', type: 'address' },
+        { name: 'creditLimit', type: 'uint256' },
+        { name: 'currentBalance', type: 'uint256' },
+        { name: 'active', type: 'bool' },
+      ]
+    }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'newWeights', type: 'uint16[3]' }],
+    name: 'setWeights',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'targetWeights',
+    outputs: [{ name: '', type: 'uint16[3]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'newThreshold', type: 'uint16' }],
+    name: 'setRebalanceThreshold',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'rebalanceThreshold',
+    outputs: [{ name: '', type: 'uint16' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'token', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'rescue',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },

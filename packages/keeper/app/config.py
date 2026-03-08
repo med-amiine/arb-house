@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     keeper_address: str = Field(default="0x" + "2" * 40, alias="KEEPER_ADDRESS")
     
     # Contracts
-    vault_address: str = Field(default="0x910a7b063021eC417227F3Cb7f0178f28bc0BA4E", alias="VAULT_ADDRESS")
+    vault_address: str = Field(default="0x5fced2ffc59401d5a3D2439C7b997E7bcCF85Ff8", alias="VAULT_ADDRESS")
     
     # Feature flags
     mock_mode: bool = Field(default=True, alias="MOCK_MODE")  # Enable mock data for testing

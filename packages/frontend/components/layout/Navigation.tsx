@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { Vault, History, Menu, X, LayoutDashboard, TrendingUp } from 'lucide-react'
+import { Vault, History, Menu, X, LayoutDashboard, TrendingUp, Crown } from 'lucide-react'
 import { useState } from 'react'
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vault-analytics', label: 'Analytics', icon: TrendingUp },
   { href: '/transactions', label: 'History', icon: History },
+  { href: '/owner', label: 'Owner', icon: Crown },
 ]
 
 export function Navigation() {
