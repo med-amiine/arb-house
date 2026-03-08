@@ -5,6 +5,8 @@ import { VAULT_ADDRESS, VAULT_ABI, USDC_ADDRESS, USDC_ABI } from '@/lib/contract
 import { formatUnits } from 'viem'
 import { useEffect, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
+import { ArrowRight, Sparkles } from 'lucide-react'
+import Link from 'next/link'
 
 interface UserPosition {
   shares: bigint
@@ -21,7 +23,6 @@ interface UserPosition {
 export function RealUserPosition() {
   const { address, isConnected } = useAccount()
   const [mounted, setMounted] = useState(false)
-
 
   useEffect(() => {
     setMounted(true)
@@ -81,6 +82,46 @@ export function RealUserPosition() {
   ) || 0
 
   const totalValue = assetsNum + usdcNum + pendingAssets
+
+  // If user has no position, show onboarding panel
+  if (totalValue === 0) {
+    return (
+      <div className="card p-6 min-h-[480px] flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-6">
+            <Sparkles className="w-8 h-8 text-accent" />
+          </div>
+          
+          <h3 className="text-2xl font-bold mb-3">
+            Deposit USDC
+          </h3>
+          
+          <p className="text-text-secondary mb-6 max-w-xs">
+            Start earning yield from AI-driven credit vaults
+          </p>
+
+          <div className="space-y-3 w-full max-w-xs mb-8">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-secondary">Expected yield</span>
+              <span className="font-semibold text-accent">8–12%</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-text-secondary">Minimum deposit</span>
+              <span className="font-semibold">$100</span>
+            </div>
+          </div>
+
+          <Link
+            href="/deposit"
+            className="group flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-semibold hover:bg-accent/90 transition-all hover:scale-105"
+          >
+            Get Started
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="card p-6 min-h-[480px] flex flex-col">

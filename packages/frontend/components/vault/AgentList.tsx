@@ -1,16 +1,16 @@
 'use client'
 
-import { Bot, TrendingUp, Shield, AlertCircle } from 'lucide-react'
 import { useVaultData } from '@/hooks/useVault'
+import { TrendingUp, Shield, AlertCircle } from 'lucide-react'
 
 export function AgentList() {
   const { agents, tvl, isLoading } = useVaultData()
 
   // Agent names and strategies based on deployment
   const agentInfo = [
-    { name: 'Aave Agent', strategy: 'Conservative Lending', protocol: 'Aave V3', risk: 'low' },
-    { name: 'Pendle Agent', strategy: 'PT Yield Holding', protocol: 'Pendle', risk: 'medium' },
-    { name: 'Morpho Agent', strategy: 'Optimized Lending', protocol: 'Morpho', risk: 'low' },
+    { name: 'Aave Lending Agent', strategy: 'Conservative Lending', protocol: 'Aave V3', risk: 'Low' },
+    { name: 'Pendle Carry Agent', strategy: 'PT Yield Holding', protocol: 'Pendle', risk: 'Medium' },
+    { name: 'Basis Trading Agent', strategy: 'Optimized Lending', protocol: 'Morpho', risk: 'Medium' },
   ]
 
   // Combine real agent data with strategy info
@@ -39,57 +39,48 @@ export function AgentList() {
     <div className="bg-surface border border-border rounded-xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Bot className="w-5 h-5 text-accent" />
-            AI Agents
+          <h3 className="text-lg font-semibold">
+            Active Strategies
           </h3>
-          <p className="text-text-secondary text-sm">Your capital is managed by these strategies</p>
+          <p className="text-text-secondary text-sm">Current capital allocations</p>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {displayAgents.map((agent, index) => (
           <div
             key={index}
             className="p-4 rounded-lg bg-void/50 border border-border hover:border-accent/30 transition-colors"
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-accent" />
-                </div>
-                <div>
-                  <div className="font-semibold">{agent.name}</div>
-                  <div className="text-xs text-text-muted">{agent.protocol}</div>
-                </div>
-              </div>
-              
-              <div className="text-right">
-                <div className="text-lg font-bold text-accent">${agent.balance?.toFixed(2) || '0.00'}</div>
-                <div className="text-xs text-text-muted">{agent.allocation}% allocation</div>
+            {/* Strategy Name & Allocation */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold">{agent.name}</div>
+              <div className="text-lg font-bold font-mono text-accent">
+                {agent.allocation}%
               </div>
             </div>
 
-            <p className="text-sm text-text-secondary mb-3">{agent.strategy}</p>
-
-            <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-text-muted" />
-                <span className="text-text-muted">{agent.strategy}</span>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                <Shield className="w-3 h-3 text-text-muted" />
-                <span className={`capitalize ${
-                  agent.risk === 'low' ? 'text-accent' : 'text-warning'
+            {/* Strategy Details */}
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-text-muted" />
+                <span className="text-text-secondary">Risk:</span>
+                <span className={`font-medium ${
+                  agent.risk === 'Low' ? 'text-accent' : 'text-warning'
                 }`}>
-                  {agent.risk} risk
+                  {agent.risk}
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 ml-auto">
-                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span className="text-accent capitalize">active</span>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-text-muted" />
+                <span className="text-text-secondary">Protocol:</span>
+                <span className="text-text-primary">{agent.protocol}</span>
+              </div>
+
+              <div className="ml-auto flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <span className="text-accent text-sm">Active</span>
               </div>
             </div>
           </div>
@@ -99,7 +90,7 @@ export function AgentList() {
       <div className="mt-4 p-3 rounded-lg bg-warning/10 border border-warning/20 flex items-start gap-2">
         <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
         <p className="text-xs text-text-secondary">
-          Agents rebalance automatically based on market conditions. Past performance does not guarantee future results.
+          Strategies rebalance automatically based on market conditions. Past performance does not guarantee future results.
         </p>
       </div>
     </div>
