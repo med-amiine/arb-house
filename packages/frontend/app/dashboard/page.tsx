@@ -13,37 +13,34 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/5 via-surface to-surface border border-border mb-8">
+        {/* Hero Section - Compact */}
+        <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-accent/5 via-surface to-surface border border-border mb-4">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent" />
-          <div className="relative p-6 lg:p-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-medium mb-4">
+          <div className="relative p-4 lg:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                   Live on Arbitrum Sepolia
                 </div>
-                <h1 className="text-2xl lg:text-3xl font-bold tracking-tight mb-2">
+                <h1 className="text-xl font-bold tracking-tight hidden sm:block">
                   Your Dashboard
                 </h1>
-                <p className="text-text-secondary max-w-xl">
-                  Track your portfolio performance and manage your deposits across AI-powered yield strategies.
-                </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-row gap-2">
                 <Link
                   href="/deposit"
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-medium hover:bg-accent/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <ArrowDownCircle className="w-5 h-5" />
+                  <ArrowDownCircle className="w-4 h-4" />
                   Deposit
                 </Link>
                 <Link
                   href="/withdraw"
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-surface border border-border text-text-primary rounded-xl font-medium hover:bg-surface-hover transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary rounded-lg font-medium text-sm hover:bg-surface-hover transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <ArrowUpCircle className="w-5 h-5" />
+                  <ArrowUpCircle className="w-4 h-4" />
                   Withdraw
                 </Link>
               </div>
@@ -51,8 +48,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Sync Health Banner */}
-        <div className="mb-8">
+        {/* Sync Health Banner - Compact */}
+        <div className="mb-6">
           <SyncHealth />
         </div>
 

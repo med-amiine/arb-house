@@ -65,19 +65,19 @@ export function SyncHealth() {
   const Icon = icons[status]
 
   return (
-    <div className={`rounded-xl p-4 border ${colors[status]}`}>
-      <div className="flex items-center justify-between mb-2">
+    <div className={`rounded-lg p-3 border ${colors[status]}`}>
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5" />
-          <span className="font-medium">Vault Sync Health</span>
+          <Icon className="w-4 h-4" />
+          <span className="font-medium text-sm">Vault Sync Health</span>
         </div>
-        <span className="text-2xl font-bold font-mono">
+        <span className="text-lg font-bold font-mono">
           {formatTime(timeLeft)}
         </span>
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-1000 ${
             status === 'healthy' ? 'bg-accent' :
@@ -87,7 +87,7 @@ export function SyncHealth() {
         />
       </div>
 
-      <p className="text-xs mt-2 opacity-80">
+      <p className="text-xs mt-1.5 opacity-80">
         {status === 'healthy' ? 'Keeper is syncing regularly. Deposits enabled.' :
          status === 'warning' ? 'Sync needed soon. Deposits may pause soon.' :
          'CRITICAL: Deposits are currently paused. Sync required.'}
