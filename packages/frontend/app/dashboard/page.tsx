@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { VaultState } from '@/components/vault/VaultState'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 import { RecentActivity } from '@/components/vault/RecentActivity'
 import { RealUserPosition } from '@/components/vault/RealUserPosition'
 import { YieldEstimate } from '@/components/vault/YieldEstimate'
-import { SyncHealth } from '@/components/vault/SyncHealth'
 import { DepositForm } from '@/components/deposit/DepositForm'
 import { WithdrawForm } from '@/components/withdraw/WithdrawForm'
 import { Dialog } from '@/components/ui/Dialog'
@@ -53,7 +51,7 @@ export default function DashboardPage() {
         {/* Hero Section - Compact */}
         <motion.section 
           variants={itemVariants}
-          className="relative overflow-hidden rounded-xl bg-gradient-to-br from-accent/5 via-surface to-surface border border-border mb-4"
+          className="relative overflow-hidden rounded-xl bg-gradient-to-br from-accent/5 via-surface to-surface border border-border mb-8"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent" />
           <div className="relative p-4 lg:p-6">
@@ -86,16 +84,6 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </motion.section>
-
-        {/* Sync Health Banner - Compact */}
-        <motion.div variants={itemVariants} className="mb-6">
-          <SyncHealth />
-        </motion.div>
-
-        {/* DOMINANT: Vault State Card */}
-        <motion.section variants={itemVariants} className="mb-8">
-          <VaultState />
         </motion.section>
 
         {/* Main Content Grid */}
@@ -149,7 +137,7 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="font-semibold text-lg">Detailed Analytics</h3>
                   <p className="text-text-secondary text-sm">
-                    View capital deployment, agent allocations, and share metrics
+                    View vault state, keeper health, and capital deployment
                   </p>
                 </div>
               </div>

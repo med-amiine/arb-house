@@ -47,9 +47,13 @@ export function VaultState() {
   // Mock realized yield (would come from actual data)
   const realizedYield = 11.8
   
-  // Calculate risk score based on agent distribution
+  // Calculate risk score 0-100 based on agent distribution and utilization
   const activeAgents = agents?.filter(a => a.active).length || 0
-  const riskScore = activeAgents >= 3 ? 'AA' : activeAgents >= 2 ? 'A' : 'B'
+  // Base score from active agents (max 60 points)
+  const agentScore = (activeAgents / 3) * 60
+  // Utilization score (optimal around 50-80%, max 40 points)
+  const utilScore = utilization > 30 && utilization < 85 ? 40 : utilization > 20 && utilization < 90 ? 30 : 20
+  const riskScore = Math.round(agentScore + utilScore)
 
   return (
     <motion.div 
@@ -107,13 +111,13 @@ export function VaultState() {
           <div>
             <p className="text-text-secondary text-sm mb-1 flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Agent Risk Score
+              Risk Score
             </p>
             <p className="text-4xl font-bold font-mono tracking-tight text-accent">
               {riskScore}
             </p>
             <p className="text-xs text-text-secondary mt-1">
-              {activeAgents} of 3 agents active
+              Out of 100 • {activeAgents} of 3 agents active
             </p>
           </div>
           

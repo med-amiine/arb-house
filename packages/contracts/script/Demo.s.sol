@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 import {BondCreditVault} from "../src/BondCreditVault.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -27,7 +28,7 @@ contract Demo is Script {
         vm.startPrank(investor);
         usdc.approve(address(vault), type(uint256).max);
         uint256 shares = vault.deposit(100_000e6, investor);
-        emit log_named_uint("deposited shares", shares);
+        console.log("deposited shares", shares);
         vm.stopPrank();
 
         // keeper sync & withdrawal demonstration
