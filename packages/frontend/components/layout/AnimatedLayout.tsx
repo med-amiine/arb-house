@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
 interface AnimatedLayoutProps {
@@ -10,28 +10,31 @@ interface AnimatedLayoutProps {
 
 export function AnimatedLayout({ children }: AnimatedLayoutProps) {
   const pathname = usePathname()
-  const [isFirstMount, setIsFirstMount] = useState(true)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    // Skip animation on first mount (initial page load)
-    setIsFirstMount(false)
+    // Small delay to ensure hydration is complete
+    const timer = setTimeout(() => setIsReady(true), 50)
+    return () => clearTimeout(timer)
   }, [])
 
+  // Don't animate until after hydration
+  if (!isReady) {
+    return <main className="flex-1">{children}</main>
+  }
+
   return (
-    <AnimatePresence mode="wait">
-      <motion.main
-        key={pathname}
-        initial={isFirstMount ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{
-          duration: 0.3,
-          ease: [0.25, 0.1, 0.25, 1],
-        }}
-        className="flex-1"
-      >
-        {children}
-      </motion.main>
-    </AnimatePresence>
+    <motion.main
+      key={pathname}
+      initial={{ opacity: 0.95 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: 0.25,
+        ease: 'easeOut',
+      }}
+      className="flex-1"
+    >
+      {children}
+    </motion.main>
   )
 }
