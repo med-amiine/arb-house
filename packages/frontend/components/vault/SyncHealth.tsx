@@ -65,33 +65,24 @@ export function SyncHealth() {
   const Icon = icons[status]
 
   return (
-    <div className={`rounded-lg p-3 border ${colors[status]}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4" />
-          <span className="font-medium text-sm">Vault Sync Health</span>
+    <div className={`rounded-lg px-3 py-2 border ${colors[status]}`}>
+      <div className="flex items-center gap-3">
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-1000 ${
+                status === 'healthy' ? 'bg-accent' :
+                status === 'warning' ? 'bg-warning' : 'bg-danger'
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-        <span className="text-lg font-bold font-mono">
+        <span className="text-sm font-bold font-mono flex-shrink-0">
           {formatTime(timeLeft)}
         </span>
       </div>
-
-      {/* Progress Bar */}
-      <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
-        <div
-          className={`h-full transition-all duration-1000 ${
-            status === 'healthy' ? 'bg-accent' :
-            status === 'warning' ? 'bg-warning' : 'bg-danger'
-          }`}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      <p className="text-xs mt-1.5 opacity-80">
-        {status === 'healthy' ? 'Keeper is syncing regularly. Deposits enabled.' :
-         status === 'warning' ? 'Sync needed soon. Deposits may pause soon.' :
-         'CRITICAL: Deposits are currently paused. Sync required.'}
-      </p>
     </div>
   )
 }
