@@ -53,104 +53,107 @@ export function YieldEstimate() {
   const yieldEarned = projectedValue - assetsNum
 
   return (
-    <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-accent" />
-          Yield Estimate
-        </h3>
-      </div>
+    <div className="card p-6 min-h-[480px] flex flex-col">
+      <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+        <Calculator className="w-5 h-5 text-accent" />
+        Yield Estimate
+      </h3>
 
-      {/* Current Deposit */}
-      <div className="mb-6">
-        <p className="text-sm text-text-secondary mb-1">Current Deposit</p>
-        <p className="text-2xl font-bold font-mono">
-          {formatCurrency(assetsNum)}
-        </p>
-      </div>
-
-      {/* Scenario Selector */}
-      <div className="mb-6">
-        <p className="text-sm text-text-secondary mb-2">APY Scenario</p>
-        <div className="grid grid-cols-3 gap-2">
-          {(['conservative', 'moderate', 'optimistic'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setScenario(s)}
-              className={`py-2 px-3 rounded-lg text-xs font-medium capitalize transition-all ${
-                scenario === s
-                  ? 'bg-accent text-white'
-                  : 'bg-void text-text-secondary hover:bg-surface-hover'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+      <div className="space-y-6 flex-1 flex flex-col">
+        {/* Current Deposit */}
+        <div>
+          <p className="text-sm text-text-secondary mb-1">Current Deposit</p>
+          <p className="text-2xl font-bold font-mono">
+            {formatCurrency(assetsNum)}
+          </p>
         </div>
-        <p className="text-xs text-text-muted mt-2">
-          {(apy * 100).toFixed(0)}% APY
-        </p>
-      </div>
 
-      {/* Timeframe Selector */}
-      <div className="mb-6">
-        <p className="text-sm text-text-secondary mb-2">Timeframe</p>
-        <div className="flex gap-2">
-          {[
-            { value: 1, label: '1M' },
-            { value: 6, label: '6M' },
-            { value: 12, label: '1Y' },
-          ].map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setTimeframe(value as 1 | 6 | 12)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                timeframe === value
-                  ? 'bg-accent text-white'
-                  : 'bg-void text-text-secondary hover:bg-surface-hover'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Projected Results */}
-      <div className="space-y-4 p-4 bg-void rounded-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-accent" />
-            <span className="text-sm">Projected Value</span>
+        {/* Scenario Selector */}
+        <div>
+          <p className="text-sm text-text-secondary mb-2">APY Scenario</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(['conservative', 'moderate', 'optimistic'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScenario(s)}
+                className={`py-2 px-3 rounded-lg text-xs font-medium capitalize transition-all ${
+                  scenario === s
+                    ? 'bg-accent text-white'
+                    : 'bg-void text-text-secondary hover:bg-surface-hover'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
           </div>
-          <span className="font-mono font-bold text-lg">
-            {formatCurrency(projectedValue)}
-          </span>
+          <p className="text-xs text-text-muted mt-2">
+            {(apy * 100).toFixed(0)}% APY
+          </p>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-warning" />
-            <span className="text-sm">Yield Earned</span>
+        {/* Timeframe Selector */}
+        <div>
+          <p className="text-sm text-text-secondary mb-2">Timeframe</p>
+          <div className="flex gap-2">
+            {[
+              { value: 1, label: '1M' },
+              { value: 6, label: '6M' },
+              { value: 12, label: '1Y' },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setTimeframe(value as 1 | 6 | 12)}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  timeframe === value
+                    ? 'bg-accent text-white'
+                    : 'bg-void text-text-secondary hover:bg-surface-hover'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          <span className="font-mono font-bold text-lg text-accent">
-            +{formatCurrency(yieldEarned)}
-          </span>
         </div>
 
-        <div className="pt-3 border-t border-border">
-          <div className="flex justify-between text-xs text-text-muted">
-            <span>Return</span>
-            <span className="text-accent">
-              +{((yieldEarned / assetsNum) * 100).toFixed(1)}%
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Projected Results */}
+        <div className="space-y-4 p-4 bg-void rounded-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-accent" />
+              <span className="text-sm">Projected Value</span>
+            </div>
+            <span className="font-mono font-bold text-lg">
+              {formatCurrency(projectedValue)}
             </span>
           </div>
-        </div>
-      </div>
 
-      <p className="text-xs text-text-muted mt-4">
-        * Estimates are based on historical APY and do not guarantee future returns.
-      </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-warning" />
+              <span className="text-sm">Yield Earned</span>
+            </div>
+            <span className="font-mono font-bold text-lg text-accent">
+              +{formatCurrency(yieldEarned)}
+              </span>
+          </div>
+
+          <div className="pt-3 border-t border-border">
+            <div className="flex justify-between text-xs text-text-muted">
+              <span>Return</span>
+              <span className="text-accent">
+                +{((yieldEarned / assetsNum) * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-text-muted">
+          * Estimates are based on historical APY and do not guarantee future returns.
+        </p>
+      </div>
     </div>
   )
 }

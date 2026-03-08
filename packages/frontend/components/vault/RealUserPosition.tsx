@@ -83,10 +83,10 @@ export function RealUserPosition() {
   const totalValue = assetsNum + usdcNum + pendingAssets
 
   return (
-    <div className="card p-6">
+    <div className="card p-6 min-h-[480px] flex flex-col">
       <h3 className="text-lg font-semibold mb-6">Your Position</h3>
       
-      <div className="space-y-6">
+      <div className="space-y-6 flex-1">
         {/* Total Value */}
         <div>
           <p className="text-sm text-text-secondary mb-1">Total Value</p>
@@ -136,12 +136,15 @@ export function RealUserPosition() {
           </div>
         </div>
 
-        {/* Pending withdrawals list */}
+        {/* Spacer to push withdrawal history to bottom */}
+        <div className="flex-1" />
+
+        {/* Pending withdrawals list - shown at bottom if exists */}
         {withdrawals && withdrawals.length > 0 && (
-          <div className="pt-4 border-t border-border">
-            <p className="text-sm font-medium mb-3">Withdrawal History</p>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {withdrawals.map((w, i) => (
+          <div className="pt-4 border-t border-border max-h-32 overflow-y-auto">
+            <p className="text-sm font-medium mb-2">Withdrawal History</p>
+            <div className="space-y-2">
+              {withdrawals.slice(0, 3).map((w, i) => (
                 <div key={i} className="flex justify-between items-center text-sm p-2 bg-void rounded">
                   <div>
                     <span className={w.claimed ? 'text-accent' : 'text-warning'}>
