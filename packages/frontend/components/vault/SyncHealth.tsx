@@ -67,7 +67,10 @@ export function SyncHealth() {
   return (
     <div className={`rounded-lg px-3 py-2 border ${colors[status]}`}>
       <div className="flex items-center gap-3">
-        <Icon className="w-4 h-4 flex-shrink-0" />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Icon className="w-4 h-4" />
+          <span className="text-xs font-medium">Keeper Health</span>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
             <div

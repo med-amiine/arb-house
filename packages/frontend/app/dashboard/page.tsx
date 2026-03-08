@@ -1,15 +1,22 @@
 'use client'
 
+import { useState } from 'react'
 import { VaultStats } from '@/components/vault/VaultStats'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
 import { RecentActivity } from '@/components/vault/RecentActivity'
 import { RealUserPosition } from '@/components/vault/RealUserPosition'
 import { SyncHealth } from '@/components/vault/SyncHealth'
+import { DepositForm } from '@/components/deposit/DepositForm'
+import { WithdrawForm } from '@/components/withdraw/WithdrawForm'
+import { Dialog } from '@/components/ui/Dialog'
 import { ArrowDownCircle, ArrowUpCircle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
+  const [isDepositOpen, setIsDepositOpen] = useState(false)
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
+
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,20 +36,20 @@ export default function DashboardPage() {
               </div>
               
               <div className="flex flex-row gap-2">
-                <Link
-                  href="/deposit"
+                <button
+                  onClick={() => setIsDepositOpen(true)}
                   className="flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <ArrowDownCircle className="w-4 h-4" />
                   Deposit
-                </Link>
-                <Link
-                  href="/withdraw"
+                </button>
+                <button
+                  onClick={() => setIsWithdrawOpen(true)}
                   className="flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary rounded-lg font-medium text-sm hover:bg-surface-hover transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <ArrowUpCircle className="w-4 h-4" />
                   Withdraw
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -95,6 +102,24 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Deposit Modal */}
+      <Dialog
+        isOpen={isDepositOpen}
+        onClose={() => setIsDepositOpen(false)}
+        title="Deposit USDC"
+      >
+        <DepositForm />
+      </Dialog>
+
+      {/* Withdraw Modal */}
+      <Dialog
+        isOpen={isWithdrawOpen}
+        onClose={() => setIsWithdrawOpen(false)}
+        title="Withdraw USDC"
+      >
+        <WithdrawForm />
+      </Dialog>
     </div>
   )
 }
