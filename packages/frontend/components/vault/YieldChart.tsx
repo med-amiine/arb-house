@@ -48,7 +48,7 @@ export function YieldChart({ mode = 'position' }: YieldChartProps) {
             {mode === 'position' ? (
               <>
                 <TrendingUp className="w-5 h-5 text-accent" />
-                Risk & Performance
+                Performance
               </>
             ) : (
               <>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { YieldChart } from '@/components/vault/YieldChart'
 import { AgentList } from '@/components/vault/AgentList'
+import { VaultRadar } from '@/components/vault/VaultRadar'
 import { RecentActivity } from '@/components/vault/RecentActivity'
 import { RealUserPosition } from '@/components/vault/RealUserPosition'
 import { YieldEstimate } from '@/components/vault/YieldEstimate'
@@ -151,6 +152,7 @@ export default function DashboardPage() {
 
           {/* Right Column - Charts & Agents */}
           <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
+            <VaultRadar />
             <YieldChart mode={activeTab} />
             <AgentList />
           </motion.div>
