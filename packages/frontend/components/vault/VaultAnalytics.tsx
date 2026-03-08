@@ -4,6 +4,19 @@ import { useReadContract } from 'wagmi'
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { formatUnits } from 'viem'
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
 
 export function VaultAnalytics() {
   const [mounted, setMounted] = useState(false)
@@ -84,10 +97,26 @@ export function VaultAnalytics() {
   const isStale = timeSinceSync !== null && timeSinceSync > 12 * 60 // 12 hours
 
   return (
-    <div className="card p-6">
+    <motion.div 
+      className="card p-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.06,
+            delayChildren: 0.05,
+          },
+        },
+      }}
+    >
       <h3 className="text-lg font-semibold mb-6">Vault Analytics</h3>
       
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <motion.div 
+        variants={itemVariants}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+      >
         {/* TVL */}
         <div className="p-4 bg-void rounded-lg">
           <p className="text-xs text-text-secondary mb-1">Total Value Locked</p>
@@ -122,10 +151,10 @@ export function VaultAnalytics() {
             <p className="text-xs text-danger mt-1">Sync required</p>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Capital Deployment */}
-      <div className="mb-6">
+      <motion.div variants={itemVariants} className="mb-6">
         <h4 className="text-sm font-medium mb-3">Capital Deployment</h4>
         <div className="space-y-3">
           <div>
@@ -154,14 +183,31 @@ export function VaultAnalytics() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Agent Allocations */}
-      <div>
+      <motion.div variants={itemVariants}>
         <h4 className="text-sm font-medium mb-3">Agent Allocations</h4>
-        <div className="space-y-3">
+        <motion.div 
+          className="space-y-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: {
+              transition: {
+                staggerChildren: 0.05,
+                delayChildren: 0.1,
+              },
+            },
+          }}
+        >
           {agents.map((agent, i) => (
-            <div key={i} className="p-3 bg-void rounded-lg">
+            <motion.div 
+              key={i} 
+              variants={itemVariants}
+              className="p-3 bg-void rounded-lg"
+            >
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium px-2 py-0.5 rounded bg-surface">
@@ -192,10 +238,10 @@ export function VaultAnalytics() {
               <p className="text-xs text-text-muted mt-1 font-mono truncate">
                 {agent.adapter}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   )
 }

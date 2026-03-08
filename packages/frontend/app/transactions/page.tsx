@@ -1,11 +1,46 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useKeeperData, useUserTransactions } from '@/hooks/useKeeper'
 import { useAccount } from 'wagmi'
 import { formatNumber } from '@/lib/utils'
 import { ArrowDownLeft, ArrowUpRight, Clock, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+}
+
+const rowVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
 
 export default function TransactionsPage() {
   const { address } = useAccount()
@@ -54,9 +89,14 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="min-h-screen py-12">
+    <motion.div 
+      className="min-h-screen py-12"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
+        <motion.div variants={itemVariants} className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <Link 
               href="/"
@@ -71,10 +111,10 @@ export default function TransactionsPage() {
           <p className="text-text-secondary mt-2">
             View all vault activity indexed from Arbitrum Sepolia
           </p>
-        </div>
+        </motion.div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-4 mb-6">
+        <motion.div variants={itemVariants} className="flex items-center gap-4 mb-6">
           <button
             onClick={() => setShowAll(true)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -97,10 +137,10 @@ export default function TransactionsPage() {
               My Transactions
             </button>
           )}
-        </div>
+        </motion.div>
 
         {/* Transactions Table */}
-        <div className="card overflow-hidden">
+        <motion.div variants={itemVariants} className="card overflow-hidden">
           {isLoading ? (
             <div className="p-8 space-y-4">
               {[...Array(8)].map((_, i) => (
@@ -145,10 +185,23 @@ export default function TransactionsPage() {
                     <th className="text-left p-4 text-sm font-medium text-text-secondary">Tx</th>
                   </tr>
                 </thead>
-                <tbody>
+                <motion.tbody
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: {
+                      transition: {
+                        staggerChildren: 0.03,
+                        delayChildren: 0.1,
+                      },
+                    },
+                  }}
+                >
                   {transactions.map((tx) => (
-                    <tr 
+                    <motion.tr 
                       key={tx.id}
+                      variants={rowVariants}
                       className="border-b border-border/50 hover:bg-surface/50 transition-colors"
                     >
                       <td className="p-4">
@@ -205,14 +258,14 @@ export default function TransactionsPage() {
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
-                </tbody>
+                </motion.tbody>
               </table>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }

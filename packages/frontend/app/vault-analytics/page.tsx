@@ -1,26 +1,52 @@
-import { Metadata } from 'next'
+'use client'
+
+import { motion } from 'framer-motion'
 import { VaultAnalytics } from '@/components/vault/VaultAnalytics'
 
-export const metadata: Metadata = {
-  title: 'Vault Analytics | Bond Credit Vault',
-  description: 'Detailed vault analytics and capital deployment metrics',
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1],
+    }
+  },
+}
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
 }
 
 export default function VaultAnalyticsPage() {
   return (
-    <div className="min-h-screen py-8">
+    <motion.div 
+      className="min-h-screen py-8"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <motion.div variants={itemVariants} className="mb-8">
           <h1 className="text-3xl font-bold">Vault Analytics</h1>
           <p className="text-text-secondary mt-1">
             Detailed metrics on vault performance and capital deployment
           </p>
-        </div>
+        </motion.div>
 
         {/* Vault Analytics Component */}
-        <VaultAnalytics />
+        <motion.div variants={itemVariants}>
+          <VaultAnalytics />
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }
