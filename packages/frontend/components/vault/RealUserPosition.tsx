@@ -125,7 +125,7 @@ export function RealUserPosition() {
 
   return (
     <div className="card p-6 min-h-[480px] flex flex-col">
-      <h3 className="text-lg font-semibold mb-6">Your Position</h3>
+      <h3 className="text-lg font-semibold mb-6">Vault Overview</h3>
       
       <div className="space-y-6 flex-1">
         {/* Total Value */}

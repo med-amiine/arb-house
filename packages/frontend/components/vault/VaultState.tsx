@@ -7,6 +7,7 @@ import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts'
 import { formatUnits } from 'viem'
 import { Shield, Activity, TrendingUp, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { SyncHealth } from './SyncHealth'
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -65,7 +66,7 @@ export function VaultState() {
       
       <div className="relative p-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
             <Shield className="w-6 h-6 text-accent" />
           </div>
@@ -77,6 +78,11 @@ export function VaultState() {
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             <span className="text-sm text-accent font-medium">Operational</span>
           </div>
+        </div>
+
+        {/* Keeper Health Bar - Now under Agent Credit Vault */}
+        <div className="mb-6">
+          <SyncHealth />
         </div>
 
         {/* Primary Metrics - The Big Numbers */}

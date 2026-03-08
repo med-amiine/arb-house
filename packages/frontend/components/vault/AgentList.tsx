@@ -40,7 +40,7 @@ export function AgentList() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold">
-            Active Strategies
+            Agent Strategies
           </h3>
           <p className="text-text-secondary text-sm">Current capital allocations</p>
         </div>

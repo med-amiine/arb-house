@@ -115,6 +115,7 @@ export function useVaultData() {
         balance,
         weight: tvl > 0 ? (balance / tvl) * 100 : 0,
         targetWeight: 33.33,
+        active: agentData[3],
       })
     }
   }

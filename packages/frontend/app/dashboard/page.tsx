@@ -104,7 +104,7 @@ export default function DashboardPage() {
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                   }`}
                 >
-                  Your Position
+                  Overview
                 </button>
                 <button
                   onClick={() => setActiveTab('estimate')}
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                   <TrendingUp className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Detailed Analytics</h3>
+                  <h3 className="font-semibold text-lg">Capital Allocation</h3>
                   <p className="text-text-secondary text-sm">
                     View vault state, keeper health, and capital deployment
                   </p>
